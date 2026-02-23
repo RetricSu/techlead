@@ -1,11 +1,11 @@
-# human out of the loop
+# human on the loop
 
 ## 摘要
 
 我们做的不是“让 Agent 帮人写点代码”，而是把软件工程流程本身变成一个可执行系统：
 人类只给终极目标与边界条件，frontier model 负责路径规划、执行、复盘和持续推进。
 
-`human out of the loop` 的核心不是“不要人类”，而是“人类不再给 how，只给 what + constraints + acceptance”。
+`human on the loop` 的核心不是“不要人类”，而是“人类不再给 how，只给 what + constraints + acceptance”。
 
 ---
 
@@ -162,7 +162,7 @@ va-auto-pilot/
 │   ├── scripts/test-runner.ts
 │   └── test-flows/feature-smoke.yaml
 ├── website/                           # 项目门面（GitHub Pages）
-├── docs/human-out-of-the-loop.md
+├── docs/human-on-the-loop.md
 └── README.md
 ```
 
@@ -189,7 +189,7 @@ va-auto-pilot/
 
 ## 8. 风险与边界
 
-`human out of the loop` 不是“无监督自治”。
+`human on the loop` 不是“无监督自治”。
 
 必须持续保留三层边界：
 
@@ -205,7 +205,7 @@ va-auto-pilot/
 
 frontier model 的真正价值，不在“写得更快”，而在“能不能在约束下持续逼近最终目标”。
 
-`human out of the loop` 是一种工程组织方式：
+`human on the loop` 是一种工程组织方式：
 
 - 人类定义终局
 - Agent 自主推进

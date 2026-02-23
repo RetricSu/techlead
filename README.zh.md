@@ -103,7 +103,7 @@ curl -fsSL https://raw.githubusercontent.com/Vadaski/va-auto-pilot/main/skills/v
 - 协议：`docs/operations/va-auto-pilot-protocol.md`
 - 启动提示：`docs/operations/start-va-auto-pilot-prompt.md`
 - 分发说明：`docs/operations/distribute-skill.md`
-- 理念文章：`docs/human-out-of-the-loop.md`
+- 理念文章：`docs/human-on-the-loop.md`
 - Ralph 对比：`docs/comparisons/va-auto-pilot-vs-ralph.zh.md`
 
 ## 官网

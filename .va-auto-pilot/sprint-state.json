@@ -1,7 +1,7 @@
 {
   "version": 1,
   "projectPrefix": "AP",
-  "updatedAt": "2026-02-23T18:54:36.517Z",
+  "updatedAt": "2026-02-23T19:10:38.747Z",
   "tasks": [
     {
       "id": "AP-001",
@@ -85,6 +85,151 @@
       },
       "testing": {
         "flow": "feature-smoke",
+        "mustPassRate": "",
+        "shouldPassRate": ""
+      },
+      "dependsOn": []
+    },
+    {
+      "id": "AP-004",
+      "title": "Add unit test suite for sprint-board.mjs pure functions",
+      "priority": "P1",
+      "state": "Done",
+      "owner": "",
+      "source": "human-board observation #5",
+      "createdAt": "2026-02-23",
+      "startedAt": "2026-02-23T19:00:10.174Z",
+      "completedAt": "2026-02-23T19:10:38.530Z",
+      "lastFailedAt": "",
+      "failCount": 0,
+      "reason": "",
+      "verification": "41/41 unit tests pass via node:test; check:units added to check:all; all gates pass",
+      "notes": "",
+      "review": {
+        "implementer": "",
+        "security": "",
+        "qa": "",
+        "domain": "",
+        "architect": ""
+      },
+      "testing": {
+        "flow": "",
+        "mustPassRate": "",
+        "shouldPassRate": ""
+      },
+      "dependsOn": []
+    },
+    {
+      "id": "AP-005",
+      "title": "Replace hand-rolled YAML parser with yaml package in sprint-utils.mjs",
+      "priority": "P2",
+      "state": "Done",
+      "owner": "",
+      "source": "human-board observation #1",
+      "createdAt": "2026-02-23",
+      "startedAt": "2026-02-23T19:00:10.255Z",
+      "completedAt": "2026-02-23T19:10:38.610Z",
+      "lastFailedAt": "",
+      "failCount": 0,
+      "reason": "",
+      "verification": "yaml package moved to dependencies; readSprintPathsFromConfig replaced with yaml.parse(); stripYamlValue kept as compat export; templates mirrored; all gates pass",
+      "notes": "",
+      "review": {
+        "implementer": "",
+        "security": "",
+        "qa": "",
+        "domain": "",
+        "architect": ""
+      },
+      "testing": {
+        "flow": "",
+        "mustPassRate": "",
+        "shouldPassRate": ""
+      },
+      "dependsOn": []
+    },
+    {
+      "id": "AP-006",
+      "title": "Expand test-flows to cover add, update, journal, and next CLI commands",
+      "priority": "P1",
+      "state": "Done",
+      "owner": "",
+      "source": "human-board observation #3",
+      "createdAt": "2026-02-23",
+      "startedAt": "2026-02-23T19:00:10.319Z",
+      "completedAt": "2026-02-23T19:10:38.679Z",
+      "lastFailedAt": "",
+      "failCount": 0,
+      "reason": "",
+      "verification": "sprint-board-cli.yaml added (9 flows, 18 MUST/3 SHOULD); test-cli-flows.mjs runner with isolated_state/isolated_journal; check:cli-flows added to check:all; all gates pass",
+      "notes": "",
+      "review": {
+        "implementer": "",
+        "security": "",
+        "qa": "",
+        "domain": "",
+        "architect": ""
+      },
+      "testing": {
+        "flow": "",
+        "mustPassRate": "",
+        "shouldPassRate": ""
+      },
+      "dependsOn": []
+    },
+    {
+      "id": "AP-007",
+      "title": "Correct 'human-out-of-the-loop' framing to 'human-on-the-loop' across docs and website",
+      "priority": "P3",
+      "state": "Done",
+      "owner": "",
+      "source": "human-board observation #4",
+      "createdAt": "2026-02-23",
+      "startedAt": "2026-02-23T19:00:10.378Z",
+      "completedAt": "2026-02-23T19:10:38.747Z",
+      "lastFailedAt": "",
+      "failCount": 0,
+      "reason": "",
+      "verification": "docs/human-on-the-loop.md created with updated framing; old file removed; README.md and README.zh.md references updated; all gates pass",
+      "notes": "",
+      "review": {
+        "implementer": "",
+        "security": "",
+        "qa": "",
+        "domain": "",
+        "architect": ""
+      },
+      "testing": {
+        "flow": "",
+        "mustPassRate": "",
+        "shouldPassRate": ""
+      },
+      "dependsOn": []
+    },
+    {
+      "id": "AP-008",
+      "title": "Resolve templates/ dual-copy maintenance burden",
+      "priority": "P2",
+      "state": "Backlog",
+      "owner": "",
+      "source": "human-board observation #2",
+      "createdAt": "2026-02-23",
+      "startedAt": "",
+      "completedAt": "",
+      "lastFailedAt": "",
+      "failCount": 0,
+      "reason": "",
+      "verification": "",
+      "notes": "",
+      "review": {
+        "implementer": "",
+        "security": "",
+        "qa": "",
+        "domain": "",
+        "architect": ""
+      },
+      "testing": {
+        "flow": "",
         "mustPassRate": "",
         "shouldPassRate": ""
       },

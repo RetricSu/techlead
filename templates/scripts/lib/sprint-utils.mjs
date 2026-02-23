@@ -1,23 +1,27 @@
 #!/usr/bin/env node
 // Shared utilities for sprint-board.mjs and va-parallel-runner.mjs.
-// Keep this file dependency-free (Node built-ins only).
 
 import fs from "node:fs";
 import path from "node:path";
+import { parse as parseYaml } from "yaml";
 
 export function nowIso() {
   return new Date().toISOString();
 }
 
+/**
+ * Strips surrounding quotes and trims whitespace from a scalar YAML value.
+ * Kept for backward compatibility; the yaml package handles quoting internally
+ * so this is no longer used by readSprintPathsFromConfig.
+ */
 export function stripYamlValue(value) {
   return value.replace(/^["']/, "").replace(/["']$/, "").trim();
 }
 
 /**
- * Reads the [sprint] section of a flat YAML config file.
- * Supports only top-level sections and single-level key: value pairs
- * with 2-space indentation.  Multi-line values, nested mappings, and
- * YAML anchors are NOT supported.
+ * Reads the [sprint] section of a YAML config file using the yaml package.
+ * Returns the sprint section as a plain object, or {} if the file is missing,
+ * unparseable, or has no sprint section.
  */
 export function readSprintPathsFromConfig(configPath) {
   if (!fs.existsSync(configPath)) {
@@ -25,28 +29,24 @@ export function readSprintPathsFromConfig(configPath) {
   }
 
   const raw = fs.readFileSync(configPath, "utf8");
-  const lines = raw.split(/\r?\n/);
-  const sprint = {};
-  let inSprint = false;
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-
-    const sectionMatch = line.match(/^([A-Za-z][A-Za-z0-9_-]*):\s*$/);
-    if (sectionMatch) {
-      inSprint = sectionMatch[1] === "sprint";
-      continue;
-    }
-
-    if (!inSprint) continue;
-
-    const keyMatch = line.match(/^\s{2}([A-Za-z][A-Za-z0-9_-]*):\s*(.+)\s*$/);
-    if (!keyMatch) continue;
-
-    sprint[keyMatch[1]] = stripYamlValue(keyMatch[2]);
+  let parsed;
+  try {
+    parsed = parseYaml(raw);
+  } catch {
+    return {};
   }
 
+  if (!parsed || typeof parsed !== "object" || !parsed.sprint || typeof parsed.sprint !== "object") {
+    return {};
+  }
+
+  // Return only string-valued entries from the sprint section.
+  const sprint = {};
+  for (const [key, value] of Object.entries(parsed.sprint)) {
+    if (typeof value === "string") {
+      sprint[key] = value;
+    }
+  }
   return sprint;
 }
 

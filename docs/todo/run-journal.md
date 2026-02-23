@@ -57,3 +57,39 @@
   - escape regex metacharacters when building dynamic RegExp from user-supplied strings
   - always mirror scripts/ changes to templates/ counterpart
 ---
+
+## 2026-02-23T19:06:31.523Z - AP-004
+- Summary: cli-flow test entry
+---
+
+## 2026-02-23T19:06:45.207Z - AP-004
+- Summary: cli-flow test entry
+---
+
+## 2026-02-23T19:10:47.479Z - AP-004
+- Summary: Added 41-test unit suite (node:test) covering all pure functions in sprint-utils.mjs and sprint-board.mjs CLI surface. Added check:units to package.json and check:all pipeline. Tests use isolated tmp dirs; no real state files touched.
+- Files: `scripts/test-units.mjs`, `package.json`
+- Signals:
+  - node:test is available in Node>=20 with no extra deps; use spawnSync for CLI-level tests; always use writeTmpState() for isolated state in unit tests
+---
+
+## 2026-02-23T19:10:53.790Z - AP-005
+- Summary: Replaced hand-rolled YAML line parser in readSprintPathsFromConfig with yaml.parse(). Moved yaml from devDependencies to dependencies (it is a runtime import). stripYamlValue kept as exported compat utility. Templates mirrored. All 41 unit tests still pass.
+- Files: `scripts/lib/sprint-utils.mjs`, `templates/scripts/lib/sprint-utils.mjs`, `package.json`
+- Signals:
+  - yaml package must be in dependencies not devDependencies when used in runtime scripts; keep stripYamlValue as compat export when removing internal use
+---
+
+## 2026-02-23T19:11:01.495Z - AP-006
+- Summary: Added test-flows/sprint-board-cli.yaml (9 CLI flows covering add, update, journal, next, summary, --help, error cases) and scripts/test-cli-flows.mjs runner. Flows with isolated_state/isolated_journal get tmp copies of real files to prevent state pollution. check:cli-flows added to check:all.
+- Files: `test-flows/sprint-board-cli.yaml`, `scripts/test-cli-flows.mjs`, `package.json`
+- Signals:
+  - CLI flow tests must use isolated_state to avoid polluting real sprint state; test-cli-flows.mjs skips chat-based flows (session:/turns:) transparently; cwd must be repo root
+---
+
+## 2026-02-23T19:11:07.411Z - AP-007
+- Summary: Renamed docs/human-out-of-the-loop.md to docs/human-on-the-loop.md. Updated title and all occurrences of backtick-quoted term inside doc. Updated README.md and README.zh.md references. Old file deleted.
+- Files: `docs/human-on-the-loop.md`, `README.md`, `README.zh.md`
+- Signals:
+  - human-on-the-loop is the correct framing: human supervises the loop but does not step into it; the old term implied human removal which is wrong
+---

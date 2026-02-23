@@ -103,7 +103,7 @@ curl -fsSL https://raw.githubusercontent.com/Vadaski/va-auto-pilot/main/skills/v
 - Protocol: `docs/operations/va-auto-pilot-protocol.md`
 - Start prompt: `docs/operations/start-va-auto-pilot-prompt.md`
 - Distribution: `docs/operations/distribute-skill.md`
-- Vision article: `docs/human-out-of-the-loop.md`
+- Vision article: `docs/human-on-the-loop.md`
 - Ralph comparison: `docs/comparisons/va-auto-pilot-vs-ralph.en.md`
 
 ## Website

@@ -13,12 +13,16 @@
   "scripts": {
     "check": "node ./bin/va-auto-pilot.mjs --help",
     "check:sprint": "node ./scripts/sprint-board.mjs summary",
-    "check:all": "npm run check && npm run check:sprint && npm run validate:distribution",
+    "check:units": "node ./scripts/test-units.mjs",
+    "check:cli-flows": "node ./scripts/test-cli-flows.mjs --all",
+    "check:all": "npm run check && npm run check:sprint && npm run check:units && npm run check:cli-flows && npm run validate:distribution",
     "validate:distribution": "node ./scripts/validate-distribution.mjs"
   },
-  "devDependencies": {
-    "tsx": "^4.20.4",
+  "dependencies": {
     "yaml": "^2.8.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.4"
   },
   "keywords": [
     "agent",
