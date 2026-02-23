@@ -65,7 +65,9 @@ const DEFAULTS = {
 };
 
 function printHelp() {
-  console.log(`va-parallel-runner
+  console.log(`va-parallel-runner (experimental)
+
+This helper is opt-in. Default VA Auto-Pilot path is model-native parallel orchestration + gate synchronization.
 
 Usage:
   node scripts/va-parallel-runner.mjs spawn --plan-file <path> [options]

@@ -119,8 +119,8 @@ When planning concurrency, produce a machine-readable plan:
 
 Execution path preference:
 
-1. Model-native tool orchestration first (no required external runner).
-2. Optional deterministic helper: `node scripts/va-parallel-runner.mjs spawn --plan-file ...`.
+1. Default: model-native tool orchestration + gate synchronization.
+2. Experimental opt-in only (explicit human request): `node scripts/va-parallel-runner.mjs spawn --plan-file ...`.
 
 ---
 

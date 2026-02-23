@@ -55,7 +55,8 @@ node "$tmp/va-auto-pilot/bin/va-auto-pilot.mjs" init <target-dir>
 - read `run-journal.md` (`Codebase Signals` first)
 - resolve next action with `node scripts/sprint-board.mjs next`
 - produce optional parallel plan with `node scripts/sprint-board.mjs plan --json --max-parallel 3`
-- execute parallel tracks via model-native tool calls first (optional helper: `node scripts/va-parallel-runner.mjs spawn --plan-file ...`)
+- execute parallel tracks via model-native parallel tool calls by default
+- use `scripts/va-parallel-runner.mjs` only if the user explicitly asks for the experimental external runner
 - execute current task by objective + constraints (no step-by-step instructions)
 - run build/review/acceptance gates
 - update state with `node scripts/sprint-board.mjs update ...`

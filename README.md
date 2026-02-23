@@ -66,13 +66,20 @@ Acceptance:
 - Synchronization happens at mandatory quality gates.
 - State promotion is blocked until required gates pass.
 - Concurrency decisions are runtime judgments made by the manager agent.
-- Model-native parallel tool calls are preferred; `scripts/va-parallel-runner.mjs` is an optional deterministic helper.
+- Default path is model-native parallel tool orchestration.
 
-Parallel planning commands:
+Default model-native path:
 
 ```bash
 node scripts/sprint-board.mjs plan --json --max-parallel 3 > .va-auto-pilot/parallel-plan.json
-# optional helper path
+# manager agent executes tracks via native parallel tool calls
+# synchronization barrier before state promotion
+npm run check:all && codex review --uncommitted && npm run validate:distribution
+```
+
+Experimental helper (opt-in only):
+
+```bash
 node scripts/va-parallel-runner.mjs spawn --plan-file .va-auto-pilot/parallel-plan.json --agent-cmd "codex exec --task {taskId}"
 ```
 

@@ -66,13 +66,20 @@ $va-auto-pilot
 - 强制门禁是并发轨道的同步屏障。
 - 未通过门禁不得推进状态。
 - 并发策略由管理 Agent 在实时上下文中决策。
-- 优先使用模型原生并发工具调用；`scripts/va-parallel-runner.mjs` 只是可选的确定性辅助器。
+- 默认路径是模型原生并发工具调用。
 
 并发规划命令：
 
 ```bash
 node scripts/sprint-board.mjs plan --json --max-parallel 3 > .va-auto-pilot/parallel-plan.json
-# 可选辅助路径
+# 由管理 Agent 使用原生并发工具调用执行各轨道
+# 状态推进前在门禁处同步
+npm run check:all && codex review --uncommitted && npm run validate:distribution
+```
+
+实验性辅助器（仅在明确需要时启用）：
+
+```bash
 node scripts/va-parallel-runner.mjs spawn --plan-file .va-auto-pilot/parallel-plan.json --agent-cmd "codex exec --task {taskId}"
 ```
 
