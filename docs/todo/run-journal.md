@@ -40,3 +40,20 @@
   - completion condition must be concrete and checkable not vague confidence
   - all review loops must have bounded iteration caps
 ---
+
+## 2026-02-23T18:54:44.849Z - AP-002
+- Summary: Fixed parseArgv boolean flag regression: bool flag followed by non-flag token now throws instead of silently dropping the value. e.g. --json false now gives a clear error. Mirrored to templates/scripts/lib/sprint-utils.mjs. All gates passed.
+- Files: `scripts/lib/sprint-utils.mjs`, `templates/scripts/lib/sprint-utils.mjs`
+- Signals:
+  - parseArgv boolean flag guard: reject non-flag token after bool flag with explicit error
+  - never allow silent value drops in arg parsers
+---
+
+## 2026-02-23T18:54:53.575Z - AP-003
+- Summary: Added sprint-board.mjs add command: auto-assigns next sequential ID (AP-NNN), requires --title and --priority, supports --source and --depends-on. nextTaskId() escapes regex special chars in projectPrefix to prevent injection. printHelp updated. Both scripts/sprint-board.mjs and templates/scripts/sprint-board.mjs updated identically. All gates passed.
+- Files: `scripts/sprint-board.mjs`, `templates/scripts/sprint-board.mjs`
+- Signals:
+  - sprint-board add command: use normalizeTask for all new tasks to ensure schema consistency
+  - escape regex metacharacters when building dynamic RegExp from user-supplied strings
+  - always mirror scripts/ changes to templates/ counterpart
+---

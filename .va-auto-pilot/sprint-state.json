@@ -1,7 +1,7 @@
 {
   "version": 1,
   "projectPrefix": "AP",
-  "updatedAt": "2026-02-23T18:28:31.056Z",
+  "updatedAt": "2026-02-23T18:54:36.517Z",
   "tasks": [
     {
       "id": "AP-001",
@@ -18,6 +18,64 @@
       "reason": "",
       "verification": "Two cross-reviews (adversarial + protocol designer), 6 CRITICALs resolved, templates synced",
       "notes": "",
+      "review": {
+        "implementer": "",
+        "security": "",
+        "qa": "",
+        "domain": "",
+        "architect": ""
+      },
+      "testing": {
+        "flow": "feature-smoke",
+        "mustPassRate": "",
+        "shouldPassRate": ""
+      },
+      "dependsOn": []
+    },
+    {
+      "id": "AP-002",
+      "title": "Fix parseArgv boolean flag regression (--flag value silently dropped)",
+      "priority": "P2",
+      "state": "Done",
+      "owner": "",
+      "source": "codex review",
+      "createdAt": "2026-02-23",
+      "startedAt": "2026-02-23T18:41:34.937Z",
+      "completedAt": "2026-02-23T18:54:36.348Z",
+      "lastFailedAt": "",
+      "failCount": 0,
+      "reason": "",
+      "verification": "parseArgv now throws when bool flag is followed by non-flag token; templates mirrored; check:all and validate:distribution pass",
+      "notes": "codex finding: `--json false` leaves json=true; the next token after a bool flag should be rejected with an error if it looks like a value (does not start with --), not silently skipped. Fix in scripts/lib/sprint-utils.mjs + mirror in templates/.",
+      "review": {
+        "implementer": "",
+        "security": "",
+        "qa": "",
+        "domain": "",
+        "architect": ""
+      },
+      "testing": {
+        "flow": "feature-smoke",
+        "mustPassRate": "",
+        "shouldPassRate": ""
+      },
+      "dependsOn": []
+    },
+    {
+      "id": "AP-003",
+      "title": "Add sprint-board.mjs add command to create tasks via CLI without hand-editing JSON",
+      "priority": "P1",
+      "state": "Done",
+      "owner": "",
+      "source": "dogfood observation",
+      "createdAt": "2026-02-23",
+      "startedAt": "2026-02-23T18:41:34.875Z",
+      "completedAt": "2026-02-23T18:54:36.512Z",
+      "lastFailedAt": "",
+      "failCount": 0,
+      "reason": "",
+      "verification": "add command implemented: auto-ID (AP-NNN), validation, depends-on, regex-safe prefix; printHelp updated; templates mirrored; all gates pass",
+      "notes": "Discovered while seeding this sprint: there is no way to add a task to the backlog via CLI. You must hand-edit .va-auto-pilot/sprint-state.json. This violates the CLI-first principle. Add: `node scripts/sprint-board.mjs add --title <text> --priority <P0-P3> [--source <text>] [--depends-on <ID,...>]`. Should auto-assign next AP-NNN id, set state=Backlog, write JSON, render board.",
       "review": {
         "implementer": "",
         "security": "",

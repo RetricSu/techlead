@@ -24,8 +24,15 @@ Usage:
   node scripts/sprint-board.mjs next [--json] [--state-file <path>]
   node scripts/sprint-board.mjs plan [--json] [--max-parallel <n>] [--state-file <path>]
   node scripts/sprint-board.mjs render [--state-file <path>] [--board-file <path>]
+  node scripts/sprint-board.mjs add --title <text> --priority <P0|P1|P2|P3> [options]
   node scripts/sprint-board.mjs update --id <TASK-ID> [--state <state>] [options]
   node scripts/sprint-board.mjs journal --task <TASK-ID> --summary <text> [options]
+
+Options (add):
+  --title <text>            (required) Task title
+  --priority <P0|P1|P2|P3> (required) Task priority
+  --source <text>           Origin of the task (e.g. "codex review", "dogfood")
+  --depends-on <ID1,ID2,...> Comma-separated task IDs this task depends on
 
 Options (update):
   --title <text>
@@ -379,6 +386,69 @@ function buildParallelPlan(tasks, maxParallel) {
   };
 }
 
+/**
+ * Computes the next sequential task ID by scanning existing tasks.
+ * Finds the highest numeric suffix of IDs matching the projectPrefix pattern,
+ * increments by 1, and zero-pads to 3 digits.
+ * Example: existing [AP-001, AP-002, AP-003] -> AP-004
+ */
+function nextTaskId(state) {
+  const prefix = String(state.projectPrefix || "TASK");
+  // Escape regex special characters in the prefix to prevent injection.
+  const escapedPrefix = prefix.replace(/[$()*+.?[\\\]^{|}]/g, "\\$&");
+  const pattern = new RegExp(`^${escapedPrefix}-(\\d+)$`);
+  let max = 0;
+  for (const task of state.tasks) {
+    const match = String(task.id ?? "").match(pattern);
+    if (match) {
+      const num = Number.parseInt(match[1], 10);
+      if (num > max) max = num;
+    }
+  }
+  const next = max + 1;
+  return `${prefix}-${String(next).padStart(3, "0")}`;
+}
+
+function addTask(state, options) {
+  const title = requireOption(options, "title");
+
+  const priority = options.priority;
+  if (!priority) {
+    throw new Error("Missing required option --priority");
+  }
+  if (!(priority in PRIORITY_WEIGHT)) {
+    throw new Error(`Invalid priority '${priority}'. Expected P0/P1/P2/P3.`);
+  }
+
+  const id = nextTaskId(state);
+  const createdAt = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+  const raw = {
+    id,
+    title,
+    priority,
+    state: "Backlog",
+    owner: "",
+    source: options.source ?? "",
+    createdAt,
+    startedAt: "",
+    completedAt: "",
+    lastFailedAt: "",
+    failCount: 0,
+    reason: "",
+    verification: "",
+    notes: "",
+    review: {},
+    testing: {},
+    dependsOn: options["depends-on"] ? normalizeDependsOn(options["depends-on"]) : []
+  };
+
+  const task = normalizeTask(raw);
+  state.tasks.push(task);
+  state.updatedAt = nowIso();
+  return task;
+}
+
 function updateTask(state, options, flags) {
   const id = requireOption(options, "id");
   const task = state.tasks.find((item) => item.id === id);
@@ -602,6 +672,16 @@ function main() {
   if (parsed.command === "render") {
     writeBoard(boardFile, state);
     console.log(`Sprint board rendered: ${path.relative(process.cwd(), boardFile)}`);
+    return;
+  }
+
+  if (parsed.command === "add") {
+    const task = addTask(state, parsed.options);
+    writeState(stateFile, state);
+    writeBoard(boardFile, state);
+    console.log(`Task added: ${task.id}`);
+    console.log(`State file: ${path.relative(process.cwd(), stateFile)}`);
+    console.log(`Board file: ${path.relative(process.cwd(), boardFile)}`);
     return;
   }
 
