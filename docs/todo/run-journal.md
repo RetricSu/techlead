@@ -93,3 +93,8 @@
 - Signals:
   - human-on-the-loop is the correct framing: human supervises the loop but does not step into it; the old term implied human removal which is wrong
 ---
+
+## 2026-02-23T19:23:55.804Z - AP-008
+- Summary: Eliminated templates/scripts/ dual-copy. bin/va-auto-pilot.mjs init now copies scripts verbatim from the package's own scripts/ directory (single source of truth). validate-distribution.mjs mirror equality section removed; requiredFiles list pruned to remove templates/scripts/* entries. 41/41 unit tests, 18/18 CLI flow MUSTs, validate:distribution all pass. Init smoke test confirmed correct script output. Dry-run path verified. Multi-perspective review (Correctness Auditor + CLI Consumer): no critical findings.
+- Files: `bin/va-auto-pilot.mjs`, `scripts/validate-distribution.mjs`, `templates/scripts/ (deleted)`
+---

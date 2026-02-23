@@ -7,6 +7,8 @@
 ---
 
 ## Instructions (highest priority)
+- [x] AP-008 decision: implement Option C. Remove templates/scripts/ entirely. Have `va-auto-pilot init` copy scripts directly from the installed package's scripts/ directory. templates/ keeps only genuine per-project templates (config, docs, sprint-state). Update bin/va-auto-pilot.mjs + validate-distribution.mjs accordingly. Rationale: models getting stronger means single-source-of-truth designs scale better — eliminate the whole class of mirror drift bugs rather than patching them.
+> Processed 2026-02-23: Deleted templates/scripts/ (4 files, 1607 lines removed). bin/va-auto-pilot.mjs init now copies scripts verbatim from package scripts/. validate-distribution.mjs mirror checks removed. All gates pass. Committed and pushed.
 - [x] Sprint 2 dogfood run: use va-auto-pilot itself to develop the next feature sprint. Keep complete journal and sprint records. Design philosophy: maximize delegation to CLI and sub-agents. Manager agents must not implement — they delegate. Codex review found bug in AP-002. AP-003 adds the missing `sprint-board.mjs add` CLI command. Execute both tasks through the full quality loop: implement → review → acceptance → commit → push.
 > Processed 2026-02-23: Executing AP-003 (primary, P1) and AP-002 (parallel, P2) concurrently via sub-agent delegation. Both tasks independent. Quality gates enforced: check:all → multi-perspective review → validate:distribution before commit.
 
