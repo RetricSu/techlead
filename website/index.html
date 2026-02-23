@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>VA Auto-Pilot | Goal-First Autonomous Engineering Loop</title>
+    <meta
+      name="description"
+      content="VA Auto-Pilot is a goal-first autonomous engineering loop: define outcomes, constraints, and acceptance, then let frontier models execute and self-verify."
+    />
+    <meta
+      name="keywords"
+      content="autonomous engineering, agent loop, cli orchestration, quality gates, codex skill, va auto-pilot"
+    />
+    <meta name="theme-color" content="#f3f5f9" />
+    <meta name="robots" content="index,follow" />
+    <link rel="canonical" href="https://vadaski.github.io/va-auto-pilot/" />
+    <link rel="alternate" hreflang="en" href="https://vadaski.github.io/va-auto-pilot/" />
+    <link rel="alternate" hreflang="zh-CN" href="https://vadaski.github.io/va-auto-pilot/" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="VA Auto-Pilot" />
+    <meta property="og:title" content="VA Auto-Pilot | Goal-First Autonomous Engineering Loop" />
+    <meta
+      property="og:description"
+      content="Do not micromanage prompts. Set the highest bar and constraints, then let frontier models run a closed-loop verification system."
+    />
+    <meta property="og:url" content="https://vadaski.github.io/va-auto-pilot/" />
+    <meta property="og:image" content="https://vadaski.github.io/va-auto-pilot/og-cover.svg" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="zh_CN" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="VA Auto-Pilot" />
+    <meta
+      name="twitter:description"
+      content="Goal-first autonomous engineering loop with CLI orchestration, quality gates, and verifiable outcomes."
+    />
+    <meta name="twitter:image" content="https://vadaski.github.io/va-auto-pilot/og-cover.svg" />
+
+    <meta name="github-owner" content="Vadaski" />
+    <meta name="github-repo" content="va-auto-pilot" />
+    <meta name="github-branch" content="main" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "VA Auto-Pilot",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Cross-platform",
+        "url": "https://vadaski.github.io/va-auto-pilot/",
+        "softwareVersion": "2.0.0",
+        "author": [
+          { "@type": "Person", "name": "Vadaski" },
+          { "@type": "SoftwareApplication", "name": "Codex" }
+        ],
+        "description": "Goal-first autonomous engineering loop that delegates execution to frontier models under deterministic quality gates."
+      }
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+
+  <body>
+    <div class="bg-grid" aria-hidden="true"></div>
+    <div class="bg-glow bg-glow--a" aria-hidden="true"></div>
+    <div class="bg-glow bg-glow--b" aria-hidden="true"></div>
+
+    <header class="site-header reveal">
+      <a class="brand" href="#top" aria-label="VA Auto-Pilot">
+        <span class="brand-badge">VA</span>
+        <span class="brand-text">VA AUTO-PILOT</span>
+      </a>
+
+      <nav class="nav-links">
+        <a href="#philosophy" data-i18n="nav.philosophy">Philosophy</a>
+        <a href="#loop" data-i18n="nav.loop">Loop</a>
+        <a href="#commands" data-i18n="nav.commands">Commands</a>
+        <a href="#compare" data-i18n="nav.compare">Compare</a>
+      </nav>
+
+      <div class="header-actions">
+        <div class="lang-switch" role="group" aria-label="Language switch">
+          <button id="langEn" type="button" class="lang-btn active">EN</button>
+          <button id="langZh" type="button" class="lang-btn">中文</button>
+        </div>
+        <a id="repoLink" class="btn btn-outline" href="#" target="_blank" rel="noreferrer" data-i18n="cta.repo">Repository</a>
+      </div>
+    </header>
+
+    <main id="top" class="main-shell">
+      <section class="hero reveal">
+        <p class="eyebrow" data-i18n="hero.eyebrow">Goal-First Autonomous Engineering</p>
+        <h1 data-i18n="hero.title">Do not write implementation prompts. Set the bar, then let frontier models run.</h1>
+        <p class="hero-lead" data-i18n="hero.lead">
+          VA Auto-Pilot delegates execution to top models and enforces deterministic quality gates so outcomes are auditable, reproducible, and resilient.
+        </p>
+
+        <div class="hero-cta">
+          <a href="#commands" class="btn btn-primary" data-i18n="cta.install">Get Skill</a>
+          <a href="#loop" class="btn btn-ghost" data-i18n="cta.viewLoop">View Interactive Loop</a>
+        </div>
+
+        <div class="signal-row">
+          <span class="signal-pill" data-i18n="hero.signal1">No step-by-step micromanagement</span>
+          <span class="signal-pill" data-i18n="hero.signal2">Agent manages CLI agents</span>
+          <span class="signal-pill" data-i18n="hero.signal3">Closed-loop verification system</span>
+        </div>
+      </section>
+
+      <section id="philosophy" class="section reveal">
+        <div class="section-head">
+          <p class="eyebrow" data-i18n="philosophy.eyebrow">Design Philosophy</p>
+          <h2 data-i18n="philosophy.title">A protocol, not a prompt template</h2>
+        </div>
+
+        <div class="bento-grid">
+          <article class="card card-strong">
+            <h3 data-i18n="philosophy.card1.title">Do not tell agents how</h3>
+            <p data-i18n="philosophy.card1.body">Define the highest standard, hard constraints, and measurable acceptance. Leave path planning to frontier models.</p>
+          </article>
+
+          <article class="card">
+            <h3 data-i18n="philosophy.card2.title">Manager agent over manual orchestration</h3>
+            <p data-i18n="philosophy.card2.body">Humans define destination and boundaries. The manager agent coordinates implementation agents through deterministic CLI actions.</p>
+          </article>
+
+          <article class="card">
+            <h3 data-i18n="philosophy.card3.title">Closed-loop verification</h3>
+            <p data-i18n="philosophy.card3.body">Build, review, acceptance, and state updates are mandatory. Completion is machine-verified, not presentation-driven.</p>
+          </article>
+
+          <article class="card">
+            <h3 data-i18n="philosophy.card4.title">Model frontier by default</h3>
+            <p data-i18n="philosophy.card4.body">For high-leverage tasks, use the strongest model available. Better planning quality compounds over long loops.</p>
+          </article>
+
+          <article class="card">
+            <h3 data-i18n="philosophy.card5.title">Memory is explicit</h3>
+            <p data-i18n="philosophy.card5.body">State and run memory live in files, not assumptions. The loop remains recoverable after resets and handoffs.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="loop" class="section reveal">
+        <div class="section-head">
+          <p class="eyebrow" data-i18n="loop.eyebrow">Interactive Loop</p>
+          <h2 data-i18n="loop.title">State machine as an operational contract</h2>
+        </div>
+
+        <div class="loop-layout">
+          <article class="card machine-card">
+            <div class="machine-track" role="tablist" aria-label="State machine">
+              <button type="button" class="state-node active" data-state="0">Backlog</button>
+              <button type="button" class="state-node" data-state="1">In Progress</button>
+              <button type="button" class="state-node" data-state="2">Review</button>
+              <button type="button" class="state-node" data-state="3">Testing</button>
+              <button type="button" class="state-node" data-state="4">Done</button>
+            </div>
+            <div class="machine-controls">
+              <button id="machineToggle" type="button" class="btn btn-mini" data-i18n="loop.autoplayPause">Pause Autoplay</button>
+            </div>
+          </article>
+
+          <article class="card detail-card">
+            <p class="detail-kicker" data-i18n="loop.detailKicker">Current State</p>
+            <h3 id="stateDetailTitle">Backlog</h3>
+            <p id="stateDetailBody"></p>
+            <ul id="stateDetailChecks" class="detail-list"></ul>
+          </article>
+        </div>
+      </section>
+
+      <section id="demo" class="section reveal">
+        <div class="section-head">
+          <p class="eyebrow" data-i18n="demo.eyebrow">Animated Demo</p>
+          <h2 data-i18n="demo.title">Watch one autonomous cycle</h2>
+        </div>
+
+        <div class="demo-layout">
+          <article class="card terminal-card">
+            <div class="terminal-head">
+              <span data-i18n="demo.terminalTitle">Execution Stream</span>
+              <button id="runDemo" type="button" class="btn btn-mini" data-i18n="demo.run">Run Again</button>
+            </div>
+            <pre id="demoLog" class="demo-log" aria-live="polite"></pre>
+          </article>
+
+          <article class="card command-card">
+            <p class="detail-kicker" data-i18n="demo.promptKicker">Goal-First Directive Example</p>
+            <pre><code id="goalPromptExample"></code></pre>
+            <button type="button" class="btn btn-mini copy-btn" data-copy-target="goalPromptExample" data-i18n="common.copy">Copy</button>
+          </article>
+        </div>
+      </section>
+
+      <section id="commands" class="section reveal">
+        <div class="section-head">
+          <p class="eyebrow" data-i18n="commands.eyebrow">Distribution & Commands</p>
+          <h2 data-i18n="commands.title">Install once, delegate continuously</h2>
+        </div>
+
+        <div class="install-grid">
+          <article class="card">
+            <p class="label" data-i18n="commands.skillDirLabel">Skill directory (for Codex skill-installer)</p>
+            <a id="skillDirLink" class="mono-link" href="#" target="_blank" rel="noreferrer">loading...</a>
+            <button id="copySkillLink" type="button" class="btn btn-mini" data-i18n="common.copyLink">Copy Link</button>
+          </article>
+
+          <article class="card">
+            <p class="label" data-i18n="commands.skillRawLabel">Direct skill URL (for any agent)</p>
+            <a id="skillRawLink" class="mono-link" href="#" target="_blank" rel="noreferrer">loading...</a>
+            <button id="copySkillRawLink" type="button" class="btn btn-mini" data-i18n="common.copyLink">Copy Link</button>
+          </article>
+        </div>
+
+        <div class="tab-switch" role="tablist" aria-label="Install commands">
+          <button class="tab-btn active" type="button" data-tab="codex">Codex</button>
+          <button class="tab-btn" type="button" data-tab="claude">Claude Code</button>
+        </div>
+
+        <article class="card tab-panel active" data-panel="codex">
+          <h3 data-i18n="commands.codexInstall">Codex install</h3>
+          <pre><code id="codexInstallCmd"></code></pre>
+          <button type="button" class="btn btn-mini copy-btn" data-copy-target="codexInstallCmd" data-i18n="common.copyCmd">Copy Command</button>
+          <h3 data-i18n="commands.codexUse">Codex invocation</h3>
+          <pre><code id="codexUseCmd"></code></pre>
+          <button type="button" class="btn btn-mini copy-btn" data-copy-target="codexUseCmd" data-i18n="common.copyCmd">Copy Command</button>
+        </article>
+
+        <article class="card tab-panel" data-panel="claude">
+          <h3 data-i18n="commands.claudeInstall">Claude install</h3>
+          <pre><code id="claudeInstallCmd"></code></pre>
+          <button type="button" class="btn btn-mini copy-btn" data-copy-target="claudeInstallCmd" data-i18n="common.copyCmd">Copy Command</button>
+          <h3 data-i18n="commands.claudeUse">Claude invocation</h3>
+          <pre><code id="claudeUseCmd"></code></pre>
+          <button type="button" class="btn btn-mini copy-btn" data-copy-target="claudeUseCmd" data-i18n="common.copyCmd">Copy Command</button>
+        </article>
+      </section>
+
+      <section id="compare" class="section reveal">
+        <div class="section-head">
+          <p class="eyebrow" data-i18n="compare.eyebrow">Positioning</p>
+          <h2 data-i18n="compare.title">Why VA Auto-Pilot exists</h2>
+        </div>
+
+        <div class="compare-grid">
+          <article class="card">
+            <h3 data-i18n="compare.va.title">VA Auto-Pilot</h3>
+            <p data-i18n="compare.va.body">Best for teams that need governance, deterministic gates, and recoverable long-running execution loops.</p>
+          </article>
+          <article class="card">
+            <h3 data-i18n="compare.ralph.title">Ralph-style loop</h3>
+            <p data-i18n="compare.ralph.body">Great for rapid small-task iteration with minimal ceremony and lightweight setup.</p>
+          </article>
+        </div>
+
+        <a id="compareDocLink" class="btn btn-outline" href="../docs/comparisons/va-auto-pilot-vs-ralph.en.md" target="_blank" rel="noreferrer" data-i18n="compare.link">Read full comparison</a>
+      </section>
+
+      <section id="credits" class="section reveal credits">
+        <div class="section-head">
+          <p class="eyebrow" data-i18n="credits.eyebrow">Credits</p>
+          <h2 data-i18n="credits.title">Built by Vadaski & Codex</h2>
+        </div>
+        <article class="card">
+          <p data-i18n="credits.body">Authors: Vadaski, Codex. Acknowledgements: Claude and the Vera project, where many practical patterns were distilled and validated.</p>
+        </article>
+      </section>
+    </main>
+
+    <footer class="site-footer reveal">
+      <p data-i18n="footer.tagline">Set standards. Constrain risk. Let frontier models execute.</p>
+      <a id="footerRepoLink" href="#" target="_blank" rel="noreferrer">GitHub</a>
+    </footer>
+
+    <script src="./app.js" defer></script>
+  </body>
+</html>

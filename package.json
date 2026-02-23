@@ -1,0 +1,31 @@
+{
+  "name": "va-auto-pilot",
+  "version": "0.1.0",
+  "description": "CLI-first autonomous multi-agent engineering loop for any codebase",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "va-auto-pilot": "./bin/va-auto-pilot.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "check": "node ./bin/va-auto-pilot.mjs --help",
+    "check:sprint": "node ./scripts/sprint-board.mjs summary",
+    "check:all": "npm run check && npm run check:sprint && npm run validate:distribution",
+    "validate:distribution": "node ./scripts/validate-distribution.mjs"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.4",
+    "yaml": "^2.8.1"
+  },
+  "keywords": [
+    "agent",
+    "autonomous",
+    "llm",
+    "multi-agent",
+    "workflow",
+    "automation"
+  ]
+}
