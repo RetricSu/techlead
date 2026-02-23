@@ -49,11 +49,13 @@ node "$tmp/va-auto-pilot/bin/va-auto-pilot.mjs" init <target-dir>
 - `qualityGate.reviewCommand`
 - `qualityGate.acceptanceTestCommand`
 
-6. Start the loop (single task per cycle):
+6. Start the loop (primary task + optional parallel tracks):
 
 - read `human-board.md`
 - read `run-journal.md` (`Codebase Signals` first)
 - resolve next action with `node scripts/sprint-board.mjs next`
+- produce optional parallel plan with `node scripts/sprint-board.mjs plan --json --max-parallel 3`
+- execute parallel tracks via model-native tool calls first (optional helper: `node scripts/va-parallel-runner.mjs spawn --plan-file ...`)
 - execute current task by objective + constraints (no step-by-step instructions)
 - run build/review/acceptance gates
 - update state with `node scripts/sprint-board.mjs update ...`

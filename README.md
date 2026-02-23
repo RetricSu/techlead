@@ -62,10 +62,19 @@ Acceptance:
 
 ## Concurrency Model
 
-- Independent workstreams can run in parallel.
+- One primary task is selected per cycle, and zero or more independent tracks can run in parallel.
 - Synchronization happens at mandatory quality gates.
 - State promotion is blocked until required gates pass.
 - Concurrency decisions are runtime judgments made by the manager agent.
+- Model-native parallel tool calls are preferred; `scripts/va-parallel-runner.mjs` is an optional deterministic helper.
+
+Parallel planning commands:
+
+```bash
+node scripts/sprint-board.mjs plan --json --max-parallel 3 > .va-auto-pilot/parallel-plan.json
+# optional helper path
+node scripts/va-parallel-runner.mjs spawn --plan-file .va-auto-pilot/parallel-plan.json --agent-cmd "codex exec --task {taskId}"
+```
 
 ## Distribution
 

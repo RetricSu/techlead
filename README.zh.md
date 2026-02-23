@@ -62,10 +62,19 @@ $va-auto-pilot
 
 ## 并发推进模型
 
-- 独立任务可并发执行。
+- 每轮先选一个主任务，同时可并发启动 0 到多个独立轨道。
 - 强制门禁是并发轨道的同步屏障。
 - 未通过门禁不得推进状态。
 - 并发策略由管理 Agent 在实时上下文中决策。
+- 优先使用模型原生并发工具调用；`scripts/va-parallel-runner.mjs` 只是可选的确定性辅助器。
+
+并发规划命令：
+
+```bash
+node scripts/sprint-board.mjs plan --json --max-parallel 3 > .va-auto-pilot/parallel-plan.json
+# 可选辅助路径
+node scripts/va-parallel-runner.mjs spawn --plan-file .va-auto-pilot/parallel-plan.json --agent-cmd "codex exec --task {taskId}"
+```
 
 ## 分发安装
 

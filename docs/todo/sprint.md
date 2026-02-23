@@ -6,7 +6,7 @@
 > Rules:
 > - Machine source of truth: `.va-auto-pilot/sprint-state.json`
 > - Human-readable projection: `docs/todo/sprint.md`
-> - One task at a time in `In Progress`
+> - One primary task at a time in `In Progress`; independent tracks may run in parallel
 > - Task ID format: `AP-{3-digit number}`
 > - Priority: P0(blocking) / P1(important) / P2(routine) / P3(optimization)
 >
@@ -45,6 +45,6 @@
 | - | - | - | - |
 
 ## Backlog
-| Priority | ID | Task | Owner | Source |
-|----------|----|------|-------|--------|
-| P1 | AP-001 | Replace with your first deliverable | VA Auto-Pilot | bootstrap |
+| Priority | ID | Task | Depends On | Owner | Source |
+|----------|----|------|------------|-------|--------|
+| P1 | AP-001 | Replace with your first deliverable | - | VA Auto-Pilot | bootstrap |

@@ -13,9 +13,11 @@ const requiredFiles = [
   "skills/va-auto-pilot/SKILL.md",
   "skills/va-auto-pilot/claude-command.md",
   "scripts/sprint-board.mjs",
+  "scripts/va-parallel-runner.mjs",
   "docs/todo/run-journal.md",
   "templates/.va-auto-pilot/sprint-state.json",
   "templates/scripts/sprint-board.mjs",
+  "templates/scripts/va-parallel-runner.mjs",
   "templates/docs/todo/run-journal.md",
   ".github/workflows/deploy-website.yml",
   "docs/operations/va-auto-pilot-protocol.md"

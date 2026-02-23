@@ -26,6 +26,7 @@ npx -y va-auto-pilot init .
 4. Resolve and update state via CLI:
 
 - `node scripts/sprint-board.mjs next`
+- `node scripts/sprint-board.mjs plan --json --max-parallel 3` (when parallel tracks are possible)
 - `node scripts/sprint-board.mjs update ...`
 - `node scripts/sprint-board.mjs journal ...`
 
@@ -37,4 +38,5 @@ npx -y va-auto-pilot init .
 
 6. Never skip gate failures. Fix, re-run, then update state.
 7. If stop condition is hit, pause and ask human for decision.
-8. Report concise status after each loop: task, state change, gate results, next action.
+8. Prefer model-native CLI orchestration for parallel tracks; `scripts/va-parallel-runner.mjs` is optional.
+9. Report concise status after each loop: task, state change, gate results, next action.

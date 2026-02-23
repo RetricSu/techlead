@@ -11,7 +11,7 @@
 2. `.va-auto-pilot/sprint-state.json` is the machine task source of truth.
 3. `docs/todo/sprint.md` is a generated board view (`node scripts/sprint-board.mjs render`).
 4. `docs/todo/run-journal.md` is append-only execution memory.
-5. Execute one task per cycle.
+5. Execute one primary task per cycle; optional parallel tracks are allowed when independent.
 6. `docs/todo/human-board.md` always overrides automatic decisions.
 7. Goal-first delegation: define objective + constraints + acceptance. Do not prescribe implementation steps.
 8. CLI-first execution: prefer deterministic commands over manual operations.
@@ -72,6 +72,7 @@ Read human-board.md
 Read run-journal.md
 Resolve next task via CLI
   -> node scripts/sprint-board.mjs next
+  -> optional: node scripts/sprint-board.mjs plan --json --max-parallel 3
   -> has Failed task? fix + retest
   -> has Testing task? run acceptance
   -> has Review task? run review
@@ -98,8 +99,28 @@ Rules:
 1. Let the manager agent decide concurrency dynamically at runtime.
 2. Parallelize where dependency graph allows; serialize where it does not.
 3. Use quality gates as synchronization barriers before state promotion.
-4. Never bypass acceptance to \"speed up\" parallel tracks.
+4. Never bypass acceptance to "speed up" parallel tracks.
 5. Record concurrency decisions and tradeoffs in `run-journal.md`.
+
+When planning concurrency, produce a machine-readable plan:
+
+```json
+{
+  "primaryTaskId": "AP-001",
+  "parallelTracks": ["AP-002", "AP-003"],
+  "dependencyGraph": {
+    "AP-001": [],
+    "AP-002": [],
+    "AP-003": ["AP-002"]
+  },
+  "syncPoints": ["quality-gates"]
+}
+```
+
+Execution path preference:
+
+1. Model-native tool orchestration first (no required external runner).
+2. Optional deterministic helper: `node scripts/va-parallel-runner.mjs spawn --plan-file ...`.
 
 ---
 
@@ -187,7 +208,7 @@ Commit immediately after required gates pass.
 
 Rules:
 
-1. One task = one commit
+1. One completed task = one commit (parallel tracks commit independently after gates)
 2. Stage only task-related files
 3. Commit message describes intent
 4. Never force push unless explicitly approved

@@ -22,6 +22,7 @@ Required paths:
 - `skills/va-auto-pilot/claude-command.md`
 - `.va-auto-pilot/sprint-state.json`
 - `scripts/sprint-board.mjs`
+- `scripts/va-parallel-runner.mjs` (optional runtime helper, distributed by default)
 
 ## 3) Distribute to Codex
 

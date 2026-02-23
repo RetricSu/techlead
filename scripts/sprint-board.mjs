@@ -6,6 +6,7 @@ import path from "node:path";
 const VALID_STATES = ["Backlog", "In Progress", "Review", "Testing", "Failed", "Done"];
 const NEXT_ORDER = ["Failed", "Testing", "Review", "In Progress", "Backlog"];
 const PRIORITY_WEIGHT = { P0: 0, P1: 1, P2: 2, P3: 3 };
+const DEFAULT_MAX_PARALLEL = 2;
 
 function stripYamlValue(value) {
   return value.replace(/^["']/, "").replace(/["']$/, "").trim();
@@ -69,6 +70,7 @@ function printHelp() {
 Usage:
   node scripts/sprint-board.mjs summary [--state-file <path>]
   node scripts/sprint-board.mjs next [--json] [--state-file <path>]
+  node scripts/sprint-board.mjs plan [--json] [--max-parallel <n>] [--state-file <path>]
   node scripts/sprint-board.mjs render [--state-file <path>] [--board-file <path>]
   node scripts/sprint-board.mjs update --id <TASK-ID> [--state <state>] [options]
   node scripts/sprint-board.mjs journal --task <TASK-ID> --summary <text> [options]
@@ -89,12 +91,14 @@ Options (update):
   --domain <text>
   --architect <text>
   --note <text>
+  --depends-on <ID1,ID2,...>
 
 Options (journal):
   --files <comma-separated paths>
   --signals <comma-separated signals>
 
 Global options:
+  --max-parallel <n>
   --state-file <path>
   --board-file <path>
   --journal-file <path>
@@ -173,6 +177,21 @@ function sortTasks(tasks) {
   });
 }
 
+function normalizeDependsOn(raw) {
+  if (Array.isArray(raw)) {
+    return raw.map((item) => String(item ?? "").trim()).filter(Boolean);
+  }
+
+  if (typeof raw === "string") {
+    return raw
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
 function normalizeTask(task) {
   return {
     id: String(task.id ?? ""),
@@ -200,7 +219,8 @@ function normalizeTask(task) {
       flow: String(task.testing?.flow ?? ""),
       mustPassRate: String(task.testing?.mustPassRate ?? ""),
       shouldPassRate: String(task.testing?.shouldPassRate ?? "")
-    }
+    },
+    dependsOn: normalizeDependsOn(task.dependsOn)
   };
 }
 
@@ -256,7 +276,7 @@ function renderBoardMarkdown(state) {
 > Rules:
 > - Machine source of truth: \`.va-auto-pilot/sprint-state.json\`
 > - Human-readable projection: \`docs/todo/sprint.md\`
-> - One task at a time in \`In Progress\`
+> - One primary task at a time in \`In Progress\`; independent tracks may run in parallel
 > - Task ID format: \`${prefix}-{3-digit number}\`
 > - Priority: P0(blocking) / P1(important) / P2(routine) / P3(optimization)
 >
@@ -295,9 +315,9 @@ ${rowsForSection(testing, ["ID", "Task", "Test Flow", "MUST Pass Rate", "SHOULD 
 ${rowsForSection(done, ["ID", "Task", "Completed", "Verification"], (task) => [task.id, task.title, shortDate(task.completedAt), task.verification])}
 
 ## Backlog
-| Priority | ID | Task | Owner | Source |
-|----------|----|------|-------|--------|
-${rowsForSection(backlog, ["Priority", "ID", "Task", "Owner", "Source"], (task) => [task.priority, task.id, task.title, task.owner, task.source])}
+| Priority | ID | Task | Depends On | Owner | Source |
+|----------|----|------|------------|-------|--------|
+${rowsForSection(backlog, ["Priority", "ID", "Task", "Depends On", "Owner", "Source"], (task) => [task.priority, task.id, task.title, task.dependsOn.join(", "), task.owner, task.source])}
 `;
 }
 
@@ -308,8 +328,18 @@ function writeBoard(boardFile, state) {
 }
 
 function findNextTask(tasks) {
+  const doneIds = new Set(
+    tasks
+      .filter((task) => task.state === "Done")
+      .map((task) => task.id)
+  );
+
   for (const state of NEXT_ORDER) {
-    const candidates = sortTasks(tasks.filter((task) => task.state === state));
+    let candidates = sortTasks(tasks.filter((task) => task.state === state));
+    if (state === "Backlog") {
+      candidates = candidates.filter((task) => isDependencySatisfied(task, doneIds));
+    }
+
     if (candidates.length > 0) {
       const action =
         state === "Failed"
@@ -326,6 +356,58 @@ function findNextTask(tasks) {
   }
 
   return null;
+}
+
+function isDependencySatisfied(task, doneIds) {
+  return task.dependsOn.every((dependencyId) => doneIds.has(dependencyId));
+}
+
+function buildParallelPlan(tasks, maxParallel) {
+  const primary = findNextTask(tasks);
+  if (!primary) return null;
+
+  const parallelAllowedActions = new Set(["start-task", "continue-implementation"]);
+  const doneIds = new Set(
+    tasks
+      .filter((task) => task.state === "Done")
+      .map((task) => task.id)
+  );
+  const primaryTask = primary.task;
+
+  const dependencyGraph = {
+    [primaryTask.id]: [...primaryTask.dependsOn]
+  };
+
+  if (!parallelAllowedActions.has(primary.action) || maxParallel <= 0) {
+    return {
+      generatedAt: nowIso(),
+      primaryTaskId: primaryTask.id,
+      primaryAction: primary.action,
+      parallelTracks: [],
+      dependencyGraph,
+      syncPoints: ["quality-gates"]
+    };
+  }
+
+  const tracks = [];
+  const backlog = sortTasks(tasks.filter((task) => task.state === "Backlog" && task.id !== primaryTask.id));
+
+  for (const task of backlog) {
+    if (tracks.length >= maxParallel) break;
+    if (task.dependsOn.includes(primaryTask.id)) continue;
+    if (!isDependencySatisfied(task, doneIds)) continue;
+    tracks.push(task.id);
+    dependencyGraph[task.id] = [...task.dependsOn];
+  }
+
+  return {
+    generatedAt: nowIso(),
+    primaryTaskId: primaryTask.id,
+    primaryAction: primary.action,
+    parallelTracks: tracks,
+    dependencyGraph,
+    syncPoints: ["quality-gates"]
+  };
 }
 
 function requireOption(options, key) {
@@ -391,6 +473,10 @@ function updateTask(state, options) {
     task.notes = task.notes ? `${task.notes}; ${options.note}` : options.note;
   }
 
+  if (options["depends-on"] !== undefined) {
+    task.dependsOn = normalizeDependsOn(options["depends-on"]);
+  }
+
   state.updatedAt = nowIso();
   return task;
 }
@@ -444,11 +530,23 @@ function printSummary(state) {
 
   const next = findNextTask(state.tasks);
   if (!next) {
-    console.log("Next Task  : none (backlog empty)");
+    const backlogCount = state.tasks.filter((task) => task.state === "Backlog").length;
+    if (backlogCount > 0) {
+      console.log("Next Task  : none (all backlog tasks are blocked by dependencies)");
+    } else {
+      console.log("Next Task  : none (backlog empty)");
+    }
     return;
   }
 
   console.log(`Next Task  : ${next.task.id} (${next.action})`);
+
+  const plan = buildParallelPlan(state.tasks, DEFAULT_MAX_PARALLEL);
+  if (plan && plan.parallelTracks.length > 0) {
+    console.log(`Parallel   : ${plan.parallelTracks.join(", ")}`);
+  } else {
+    console.log("Parallel   : none");
+  }
 }
 
 function main() {
@@ -492,6 +590,43 @@ function main() {
 
     console.log(`${next.task.id} ${next.action}`);
     console.log(`${next.task.title}`);
+    return;
+  }
+
+  if (parsed.command === "plan") {
+    const rawMaxParallel = parsed.options["max-parallel"];
+    const maxParallel =
+      rawMaxParallel === undefined
+        ? DEFAULT_MAX_PARALLEL
+        : Number.parseInt(String(rawMaxParallel), 10);
+
+    if (!Number.isFinite(maxParallel) || maxParallel < 0) {
+      throw new Error("Invalid --max-parallel value. Expected a non-negative integer.");
+    }
+
+    const plan = buildParallelPlan(state.tasks, maxParallel);
+
+    if (!plan) {
+      if (parsed.flags.has("json")) {
+        console.log("null");
+      } else {
+        console.log("No actionable task found.");
+      }
+      return;
+    }
+
+    if (parsed.flags.has("json")) {
+      console.log(JSON.stringify(plan, null, 2));
+      return;
+    }
+
+    console.log(`Primary    : ${plan.primaryTaskId} (${plan.primaryAction})`);
+    if (plan.parallelTracks.length === 0) {
+      console.log("Parallel   : none");
+    } else {
+      console.log(`Parallel   : ${plan.parallelTracks.join(", ")}`);
+    }
+    console.log(`Sync Points: ${plan.syncPoints.join(", ")}`);
     return;
   }
 
