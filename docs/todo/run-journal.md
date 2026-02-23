@@ -116,3 +116,8 @@
   - failureDetail only written when at least one structured field is provided
   - --list --json returns raw entries array
 ---
+
+## 2026-02-23T19:55:34.948Z - AP-012
+- Summary: Rewrote README.md, README.zh.md, website/index.html, and website/app.js to communicate VA Auto-Pilot design philosophy with conviction. Led with the design bet (frontier-model-first by design), articulated six core intellectual contributions (constraint-derived perspectives, manager-as-delegator, CLI correctness guarantee, frontier-model scaling property, strategic decomposition, failure compounding), added honest when-to-use/when-not-to-use sections, updated website hero/philosophy/loop/compare sections, added Strategic Decomposition to state machine detail and adversarial Sprint Completion Gate to Done state. codex review found P0 JS syntax error (unescaped Chinese quotes in double-quoted string) — fixed by replacing with Chinese corner brackets. Sprint Completion Gate: 3 parallel adversarial reviewers (skeptical senior engineer, future power user, first-time reader) all returned PASS with no CRITICAL findings; 5 WARNINGs all accepted with rationale. NOTE: Sprint Completion Gate was run by implementing agent — all PASS findings treated as WARNING per protocol guard; no CRITICAL findings surfaced under this control downgrade.
+- Files: `README.md`, `README.zh.md`, `website/index.html`, `website/app.js`
+---

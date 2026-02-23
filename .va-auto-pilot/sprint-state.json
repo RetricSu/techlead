@@ -1,7 +1,7 @@
 {
   "version": 1,
   "projectPrefix": "AP",
-  "updatedAt": "2026-02-23T19:41:21.944Z",
+  "updatedAt": "2026-02-23T19:55:24.469Z",
   "tasks": [
     {
       "id": "AP-001",
@@ -307,6 +307,35 @@
       "failCount": 0,
       "reason": "",
       "verification": "pitfall CLI (add/resolve/list), failureDetail on update --state Failed, templates/.va-auto-pilot/pitfalls.json, protocol updated (Operational Memory, State Update, Delegation contracts), pitfall count in summary, 9 new CLI flow tests pass, all 41 unit tests pass, validate:distribution passes",
+      "notes": "",
+      "review": {
+        "implementer": "",
+        "security": "",
+        "qa": "",
+        "domain": "",
+        "architect": ""
+      },
+      "testing": {
+        "flow": "",
+        "mustPassRate": "",
+        "shouldPassRate": ""
+      },
+      "dependsOn": []
+    },
+    {
+      "id": "AP-012",
+      "title": "Rewrite website and README to clearly articulate framework's design philosophy and competitive advantage",
+      "priority": "P1",
+      "state": "Done",
+      "owner": "",
+      "source": "human direction",
+      "createdAt": "2026-02-23",
+      "startedAt": "2026-02-23T19:44:35.993Z",
+      "completedAt": "2026-02-23T19:55:24.468Z",
+      "lastFailedAt": "",
+      "failCount": 0,
+      "reason": "",
+      "verification": "README.md, README.zh.md, website/index.html, website/app.js rewritten to communicate design philosophy: frontier-model-first, constraint-derived perspectives, CLI correctness guarantee, manager-delegates pattern, strategic decomposition, adversarial sprint completion gate, failure compounding. All gates passed: check:all PASS, validate:distribution PASS, codex review PASS (P0 JS syntax bug found and fixed). Sprint Completion Gate: 3 adversarial reviewers (skeptic/future-user/first-timer) all returned PASS with no CRITICAL findings.",
       "notes": "",
       "review": {
         "implementer": "",
