@@ -6,8 +6,7 @@
   "type": "module",
   "packageManager": "pnpm@10.29.3",
   "bin": {
-    "techlead": "./dist/cli.js",
-    "techlead-v2": "./dist/cli-v2.js"
+    "techlead": "./dist/cli.js"
   },
   "engines": {
     "node": ">=20"
