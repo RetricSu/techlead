@@ -2,7 +2,7 @@
  * Agent Adapter - Unified interface for Claude Code and Codex CLI
  */
 
-import { execSync, spawn } from "node:child_process";
+import { execSync, execFileSync, spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -115,13 +115,13 @@ export function buildClaudeCommand(
 }
 
 /**
- * Build Codex CLI command
+ * Build Codex CLI command - simplified without shell escaping
  */
 export function buildCodexCommand(
   prompt: string,
   config: AgentConfig,
   options: AgentOptions
-): string {
+): { cmd: string; args: string[] } {
   const args: string[] = ["exec"];
 
   // Output format
@@ -145,23 +145,16 @@ export function buildCodexCommand(
     args.push(`-C=${resolve(config.workingDir)}`);
   }
 
-  // Config overrides
-  if (config.allowedTools) {
-    // Codex uses different mechanism, skip for now
-  }
-
   // System prompt via config
   const systemPrompt = loadSystemPrompt(options);
   if (systemPrompt) {
-    const escaped = systemPrompt.replace(/"/g, '\\"').replace(/\n/g, "\\n");
-    args.push(`-c=system_prompt="${escaped}"`);
+    args.push(`-c=system_prompt=${systemPrompt}`);
   }
 
-  // Add the prompt
-  const escapedPrompt = prompt.replace(/"/g, '\\"');
-  args.push(`"${escapedPrompt}"`);
+  // Add the prompt as final arg
+  args.push(prompt);
 
-  return `codex ${args.join(" ")}`;
+  return { cmd: "codex", args };
 }
 
 /**
@@ -237,30 +230,40 @@ export function executeAgent(
     };
   }
 
-  const command =
-    config.provider === "claude"
-      ? buildClaudeCommand(prompt, config, options)
-      : buildCodexCommand(prompt, config, options);
-
   try {
-    const output = execSync(command, {
-      encoding: "utf8",
-      timeout: options.timeoutMs || 300000, // 5 min default
-      cwd: config.workingDir,
-      env: { ...process.env, ...options.env },
-      maxBuffer: 50 * 1024 * 1024, // 50MB buffer
-    });
+    let output: string;
 
-    if (options.outputFormat === "json") {
-      return config.provider === "claude"
-        ? parseClaudeOutput(output)
-        : parseCodexOutput(output);
+    if (config.provider === "claude") {
+      // Claude: use shell command
+      const command = buildClaudeCommand(prompt, config, options);
+      output = execSync(command, {
+        encoding: "utf8",
+        timeout: options.timeoutMs || 300000,
+        cwd: config.workingDir,
+        env: { ...process.env, ...options.env },
+        maxBuffer: 50 * 1024 * 1024,
+      });
+      
+      if (options.outputFormat === "json") {
+        return parseClaudeOutput(output);
+      }
+      return { success: true, content: output };
+    } else {
+      // Codex: use spawn with args array to avoid shell escaping
+      const { cmd, args } = buildCodexCommand(prompt, config, options);
+      output = execFileSync(cmd, args, {
+        encoding: "utf8",
+        timeout: options.timeoutMs || 300000,
+        cwd: config.workingDir,
+        env: { ...process.env, ...options.env },
+        maxBuffer: 50 * 1024 * 1024,
+      });
+      
+      if (options.outputFormat === "json") {
+        return parseCodexOutput(output);
+      }
+      return { success: true, content: output };
     }
-
-    return {
-      success: true,
-      content: output,
-    };
   } catch (error: any) {
     return {
       success: false,
@@ -287,26 +290,34 @@ export async function executeAgentAsync(
     };
   }
 
-  const command =
-    config.provider === "claude"
-      ? buildClaudeCommand(prompt, config, options)
-      : buildCodexCommand(prompt, config, options);
-
   return new Promise((resolve) => {
     const chunks: string[] = [];
-    const child = spawn(command, {
-      shell: true,
-      cwd: config.workingDir,
-      env: { ...process.env, ...options.env },
-    });
+    let child: ReturnType<typeof spawn>;
 
-    child.stdout.on("data", (data: Buffer) => {
+    if (config.provider === "claude") {
+      // Claude: use shell command
+      const command = buildClaudeCommand(prompt, config, options);
+      child = spawn(command, {
+        shell: true,
+        cwd: config.workingDir,
+        env: { ...process.env, ...options.env },
+      });
+    } else {
+      // Codex: use spawn with args array
+      const { cmd, args } = buildCodexCommand(prompt, config, options);
+      child = spawn(cmd, args, {
+        cwd: config.workingDir,
+        env: { ...process.env, ...options.env },
+      });
+    }
+
+    child.stdout!.on("data", (data: Buffer) => {
       const chunk = data.toString();
       chunks.push(chunk);
       onChunk?.(chunk);
     });
 
-    child.stderr.on("data", (data: Buffer) => {
+    child.stderr!.on("data", (data: Buffer) => {
       const chunk = data.toString();
       chunks.push(chunk);
       onChunk?.(chunk);
