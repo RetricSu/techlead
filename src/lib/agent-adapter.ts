@@ -87,12 +87,11 @@ export function buildClaudeCommand(
     args.push(`--allowed-tools=${config.allowedTools.join(",")}`);
   }
 
-  // System prompt
+  // System prompt - merge into user prompt to avoid escaping issues
   const systemPrompt = loadSystemPrompt(options);
+  let finalPrompt = prompt;
   if (systemPrompt) {
-    // Escape for shell
-    const escaped = systemPrompt.replace(/"/g, '\\"').replace(/\n/g, "\\n");
-    args.push(`--system-prompt="${escaped}"`);
+    finalPrompt = `[System Instructions]\n${systemPrompt}\n\n[User Request]\n${prompt}`;
   }
 
   // JSON Schema for structured output
@@ -109,9 +108,8 @@ export function buildClaudeCommand(
   // Disable session persistence for non-interactive
   args.push("--no-session-persistence");
 
-  // Add the prompt
-  const escapedPrompt = prompt.replace(/"/g, '\\"');
-  args.push(`"${escapedPrompt}"`);
+  // Add the prompt (no escaping needed, execSync handles it)
+  args.push(finalPrompt);
 
   return `claude ${args.join(" ")}`;
 }
