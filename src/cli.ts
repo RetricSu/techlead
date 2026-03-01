@@ -13,6 +13,7 @@ import {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const templatesRoot = path.join(__dirname, "../templates/.techlead");
 
 // Types
 interface Task {
@@ -183,25 +184,37 @@ function cmdInit(): void {
     return;
   }
 
-  fs.mkdirSync(techleadDir, { recursive: true });
-  fs.mkdirSync(getTasksDir(), { recursive: true });
-  fs.mkdirSync(getKnowledgeDir(), { recursive: true });
+  // Copy templates
+  if (fs.existsSync(templatesRoot)) {
+    copyDir(templatesRoot, techleadDir);
+    console.log("✅ TechLead initialized from templates.");
+  } else {
+    // Fallback to hardcoded init
+    fs.mkdirSync(techleadDir, { recursive: true });
+    fs.mkdirSync(getTasksDir(), { recursive: true });
+    fs.mkdirSync(getKnowledgeDir(), { recursive: true });
+    writeCurrent({ task_id: null, phase: null });
+    console.log("✅ TechLead initialized.");
+  }
 
-  writeCurrent({ task_id: null, phase: null });
-
-  fs.writeFileSync(
-    path.join(getKnowledgeDir(), "pitfalls.md"),
-    "# Pitfalls\n\n记录项目中的失败经验和教训。\n",
-    "utf8"
-  );
-  fs.writeFileSync(
-    path.join(getKnowledgeDir(), "patterns.md"),
-    "# Patterns\n\n记录项目中的成功模式和最佳实践。\n",
-    "utf8"
-  );
-
-  console.log("✅ TechLead initialized.");
   console.log("\nNext: techlead add \"your task\"");
+}
+
+// Copy directory recursively
+function copyDir(src: string, dest: string): void {
+  fs.mkdirSync(dest, { recursive: true });
+  const entries = fs.readdirSync(src, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+
+    if (entry.isDirectory()) {
+      copyDir(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
 }
 
 function cmdAdd(title: string): void {
@@ -227,11 +240,28 @@ function cmdAdd(title: string): void {
   };
   writeTask(taskId, task);
 
-  fs.writeFileSync(
-    path.join(taskDir, "README.md"),
-    `# ${task.title}\n\n**ID**: ${task.id}\n**Status**: ${task.status}\n**Created**: ${task.created_at}\n\n## Description\n\n${task.title}\n\n## Acceptance Criteria\n\n- [ ] 待补充\n`,
-    "utf8"
-  );
+  // Use template or create from scratch
+  const taskTemplateDir = path.join(templatesRoot, "tasks");
+  if (fs.existsSync(taskTemplateDir)) {
+    // Copy README template
+    const readmeTemplatePath = path.join(taskTemplateDir, "README.md");
+    if (fs.existsSync(readmeTemplatePath)) {
+      let readme = fs.readFileSync(readmeTemplatePath, "utf8");
+      readme = readme
+        .replace(/\{\{TASK_TITLE\}\}/g, task.title)
+        .replace(/\{\{TASK_ID\}\}/g, task.id)
+        .replace(/\{\{CREATED_AT\}\}/g, task.created_at)
+        .replace(/\{\{TASK_DESCRIPTION\}\}/g, task.title);
+      fs.writeFileSync(path.join(taskDir, "README.md"), readme, "utf8");
+    }
+  } else {
+    // Fallback
+    fs.writeFileSync(
+      path.join(taskDir, "README.md"),
+      `# ${task.title}\n\n**ID**: ${task.id}\n**Status**: ${task.status}\n**Created**: ${task.created_at}\n\n## Description\n\n${task.title}\n\n## Acceptance Criteria\n\n- [ ] Criterion 1\n`,
+      "utf8"
+    );
+  }
 
   console.log(`✅ Task created: ${taskId}`);
   console.log(`   ${task.title}`);
