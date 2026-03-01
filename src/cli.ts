@@ -499,6 +499,68 @@ function cmdAbort(): void {
   console.log(`⚠️  Task ${current.task_id} aborted (marked as failed)`);
 }
 
+function cmdNext(): void {
+  const current = readCurrent();
+  const tasks = listAllTasks();
+
+  // Find next task (skip current)
+  let nextTask: Task | null = null;
+
+  // 1. Find first backlog task that's not current
+  const backlogTasks = tasks.filter(
+    (t) => t.status === "backlog" && t.id !== current.task_id
+  );
+  if (backlogTasks.length > 0) {
+    nextTask = backlogTasks[0];
+  }
+
+  // 2. If no backlog, find first failed task that's not current
+  if (!nextTask) {
+    const failedTasks = tasks.filter(
+      (t) => t.status === "failed" && t.id !== current.task_id
+    );
+    if (failedTasks.length > 0) {
+      nextTask = failedTasks[0];
+    }
+  }
+
+  // 3. If still no task, check if we should retry current failed task
+  if (!nextTask && current.task_id) {
+    const currentTask = tasks.find((t) => t.id === current.task_id);
+    if (currentTask?.status === "failed") {
+      console.log(`\n🔄 Retrying current failed task: ${currentTask.id}`);
+      nextTask = currentTask;
+    }
+  }
+
+  if (!nextTask) {
+    console.log("\n✅ No more tasks in queue.");
+    if (current.task_id) {
+      const currentTask = tasks.find((t) => t.id === current.task_id);
+      if (currentTask?.status === "done") {
+        console.log("   All tasks completed!");
+      } else {
+        console.log(`   Current task ${current.task_id} still active.`);
+      }
+    }
+    console.log("\n   Run: techlead add \"new task\"");
+    return;
+  }
+
+  // Switch to next task
+  writeCurrent({ task_id: nextTask.id, phase: nextTask.phase });
+
+  console.log("\n➡️  Switched to next task:\n");
+  console.log(`   ID:     ${nextTask.id}`);
+  console.log(`   Title:  ${nextTask.title}`);
+  console.log(`   Status: ${nextTask.status}`);
+  if (nextTask.phase) {
+    console.log(`   Phase:  ${nextTask.phase}`);
+  }
+  console.log(`\n   Run: techlead run  # to execute`);
+  console.log(`   Run: techlead status  # to check`);
+}
+
 // Main CLI
 function main(): void {
   const cli = cac("techlead");
@@ -507,7 +569,8 @@ function main(): void {
   cli.command("add <title>", "Add a new task").action(cmdAdd);
   cli.command("list", "List all tasks").action(cmdList);
   cli.command("status", "Show current status").action(cmdStatus);
-  cli.command("run", "Auto-run next task (smart selection)").action(cmdRun);
+  cli.command("next", "Switch to next task in queue").action(cmdNext);
+  cli.command("run", "Auto-run current/next task").action(cmdRun);
   cli.command("abort", "Abort current task").action(cmdAbort);
 
   cli.help();
