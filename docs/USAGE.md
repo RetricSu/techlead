@@ -237,14 +237,27 @@ techlead run
 
 ```yaml
 agent:
-  provider: codex  # 或 claude
-  model: gpt-4o    # 或 sonnet
+  provider: auto   # auto | claude | codex
+  model: sonnet    # 按 provider 选择，如 codex 可填 gpt-4o
   max_budget_usd: 2.0
+  timeout_ms: 300000
   allowed_tools:
     - Read
     - Edit
     - Bash
 ```
+
+说明：
+- `provider=auto` 时自动探测可用 Agent（优先 claude，其次 codex）
+- `provider` 显式指定时按配置优先执行
+- 主 provider 失败且另一个 provider 可用时，会自动回退重试一次
+
+## 流程验收标准
+
+跑通定义与检查项见：
+
+- `docs/operations/flow-acceptance.md`
+- `docs/operations/e2e-drill-2026-03-03.md`（真实演练记录）
 
 ## 故障排除
 

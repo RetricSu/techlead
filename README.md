@@ -153,6 +153,8 @@ curl -fsSL https://raw.githubusercontent.com/digi-monkey/techlead/main/skills/te
 - CLI usage: `docs/USAGE.md`
 - Design: `docs/design/v0.2.0-design.md`
 - Distribution: `docs/operations/distribute-skill.md`
+- Flow acceptance: `docs/operations/flow-acceptance.md`
+- E2E drill report (2026-03-03): `docs/operations/e2e-drill-2026-03-03.md`
 
 ---
 

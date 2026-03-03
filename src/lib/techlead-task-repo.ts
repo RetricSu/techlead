@@ -57,6 +57,13 @@ export function findNextTask(): Task | null {
     }
   }
 
+  const activeTask = tasks.find(
+    (t) => t.status === "in_progress" || t.status === "review" || t.status === "testing"
+  );
+  if (activeTask) {
+    return activeTask;
+  }
+
   const backlogTask = tasks.find((t) => t.status === "backlog");
   if (backlogTask) {
     return backlogTask;
