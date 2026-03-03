@@ -4,8 +4,12 @@ import {
   executeAgent,
   detectAgent,
   createDefaultConfig,
+  type AgentConfig,
+  type AgentOptions,
+  type AgentProvider,
   type AgentResult,
 } from "./agent-adapter.js";
+import { defaultModelForProvider, resolveRuntimeAgentConfig } from "./techlead-runtime-config.js";
 import type { Task } from "./techlead-types.js";
 import {
   getKnowledgeDir,
@@ -311,6 +315,24 @@ export function cmdDone(taskId?: string): void {
     );
     return;
   }
+  if (task.review_passed !== true) {
+    console.error(
+      `❌ Task ${task.id} cannot be marked done because review has not passed (review_passed=${String(task.review_passed)}).`
+    );
+    return;
+  }
+
+  // All acceptance criteria in README.md must be checked before done
+  const readmePath = path.join(getTaskDir(task.id), "README.md");
+  if (fs.existsSync(readmePath)) {
+    const readme = fs.readFileSync(readmePath, "utf8");
+    if (readme.includes("- [ ]")) {
+      console.error(
+        `❌ Task ${task.id} has unchecked acceptance criteria. Complete all criteria before marking done.`
+      );
+      return;
+    }
+  }
 
   task.status = "done";
   task.phase = "completed";
@@ -325,7 +347,180 @@ export function cmdDone(taskId?: string): void {
   console.log(`✅ Task ${task.id} marked as done.`);
 }
 
+function executeAgentWithFallback(
+  prompt: string,
+  primaryConfig: AgentConfig,
+  options: AgentOptions,
+  fallbackProvider: AgentProvider | null
+): { result: AgentResult; providerUsed: AgentProvider; usedFallback: boolean } {
+  const primaryResult = executeAgent(prompt, primaryConfig, options);
+  if (primaryResult.success || !fallbackProvider || fallbackProvider === primaryConfig.provider) {
+    return { result: primaryResult, providerUsed: primaryConfig.provider, usedFallback: false };
+  }
+
+  console.log(
+    `   ⚠️  Agent '${primaryConfig.provider}' failed, retrying once with '${fallbackProvider}'...`
+  );
+
+  const fallbackConfig: AgentConfig = {
+    ...primaryConfig,
+    provider: fallbackProvider,
+    model: defaultModelForProvider(fallbackProvider),
+  };
+  const fallbackResult = executeAgent(prompt, fallbackConfig, options);
+
+  if (fallbackResult.success) {
+    return { result: fallbackResult, providerUsed: fallbackProvider, usedFallback: true };
+  }
+
+  const mergedError = [
+    `${primaryConfig.provider}: ${primaryResult.error || "unknown error"}`,
+    `${fallbackProvider}: ${fallbackResult.error || "unknown error"}`,
+  ].join(" | ");
+
+  return {
+    result: {
+      success: false,
+      content: fallbackResult.content || primaryResult.content,
+      error: mergedError,
+    },
+    providerUsed: fallbackProvider,
+    usedFallback: true,
+  };
+}
+
+function isTaskTerminallyDone(task: Task): boolean {
+  return (
+    task.status === "done" &&
+    task.phase === "completed" &&
+    task.review_passed === true &&
+    task.test_passed === true
+  );
+}
+
+function repairInvalidDoneTasks(): string[] {
+  const tasks = listAllTasks();
+  const repaired: string[] = [];
+
+  for (const task of tasks) {
+    if (task.status !== "done") continue;
+    if (isTaskTerminallyDone(task)) continue;
+
+    task.status = "in_progress";
+    task.phase = "exec";
+    task.completed_at = null;
+    writeTask(task.id, task);
+    repaired.push(task.id);
+  }
+
+  if (repaired.length > 0) {
+    const current = readCurrent();
+    if (current.task_id && repaired.includes(current.task_id)) {
+      writeCurrent({ task_id: current.task_id, phase: "exec" });
+    }
+  }
+
+  return repaired;
+}
+
+function enforceControlledTaskState(
+  task: Task,
+  expectedStatus: Task["status"],
+  expectedPhase: Task["phase"],
+  context: string
+): void {
+  const latest = readTask(task.id);
+  const metadataChanged =
+    latest.review_passed !== task.review_passed ||
+    latest.test_passed !== task.test_passed ||
+    latest.review_attempts !== task.review_attempts ||
+    latest.test_attempts !== task.test_attempts ||
+    latest.completed_at !== task.completed_at;
+
+  if (latest.status === expectedStatus && latest.phase === expectedPhase && !metadataChanged) {
+    return;
+  }
+
+  console.log(
+    `   ⚠️  Ignored external task state change during ${context}: ${latest.status}/${latest.phase || "-"} -> ${expectedStatus}/${expectedPhase || "-"}`
+  );
+
+  latest.status = expectedStatus;
+  latest.phase = expectedPhase;
+  latest.review_passed = task.review_passed;
+  latest.test_passed = task.test_passed;
+  latest.review_attempts = task.review_attempts;
+  latest.test_attempts = task.test_attempts;
+  if (expectedStatus !== "done") {
+    latest.completed_at = null;
+  } else {
+    latest.completed_at = task.completed_at;
+  }
+  writeTask(task.id, latest);
+
+  task.status = latest.status;
+  task.phase = latest.phase;
+  task.completed_at = latest.completed_at;
+  task.review_passed = latest.review_passed;
+  task.test_passed = latest.test_passed;
+  task.review_attempts = latest.review_attempts;
+  task.test_attempts = latest.test_attempts;
+}
+
+function executePhaseAgent(
+  task: Task,
+  prompt: string,
+  options: AgentOptions,
+  expectedStatus: Task["status"],
+  expectedPhase: Task["phase"],
+  context: string,
+  primaryConfig: AgentConfig,
+  fallbackProvider: AgentProvider | null
+): AgentResult {
+  const exec = executeAgentWithFallback(prompt, primaryConfig, options, fallbackProvider);
+  enforceControlledTaskState(task, expectedStatus, expectedPhase, context);
+  if (exec.usedFallback && exec.result.success) {
+    console.log(`   ↪ Fallback provider used: ${exec.providerUsed}`);
+  }
+  return exec.result;
+}
+
+function returnTaskToReview(task: Task, taskDir: string, reason: string): void {
+  console.log(`\n   ⚠️  ${reason}`);
+  console.log("   → Returning to Review phase\n");
+  task.status = "review";
+  task.phase = "review";
+  task.completed_at = null;
+  writeTask(task.id, task);
+  writeCurrent({ task_id: task.id, phase: "review" });
+  fs.mkdirSync(path.join(taskDir, "review"), { recursive: true });
+}
+
 export function cmdRun(): void {
+  const repairedTasks = repairInvalidDoneTasks();
+  if (repairedTasks.length > 0) {
+    console.log(
+      `\n⚠️  Repaired invalid done state for: ${repairedTasks.join(", ")} (restored to in_progress/exec)`
+    );
+  }
+
+  // Clear stale current.json if it points to a done task
+  const staleCurrent = readCurrent();
+  if (staleCurrent.task_id) {
+    try {
+      const staleTask = readTask(staleCurrent.task_id);
+      if (staleTask.status === "done") {
+        console.warn(
+          `⚠️  Stale current.json: task ${staleCurrent.task_id} is already done. Clearing pointer.`
+        );
+        writeCurrent({ task_id: null, phase: null });
+      }
+    } catch {
+      // task not found — also clear the stale pointer
+      writeCurrent({ task_id: null, phase: null });
+    }
+  }
+
   const nextTask = findNextTask();
 
   if (!nextTask) {
@@ -334,16 +529,31 @@ export function cmdRun(): void {
     return;
   }
 
-  const agentProvider = detectAgent();
-  if (!agentProvider) {
-    console.error("\n❌ No agent CLI found.");
+  const runtime = resolveRuntimeAgentConfig(process.cwd());
+  if (!runtime.ok) {
+    console.error(`\n❌ ${runtime.error}`);
+    if (runtime.configPath) {
+      console.error(`   Config: ${runtime.configPath}`);
+    }
     console.error("   Install Claude Code: npm install -g @anthropic-ai/claude-code");
     console.error("   Install Codex: npm install -g @openai/codex");
     return;
   }
+  const { primaryConfig, fallbackProvider, timeoutMs, configPath, providerPreference } =
+    runtime.value;
 
   console.log(`\n🚀 Running: ${nextTask.id} - ${nextTask.title}`);
-  console.log(`   Agent: ${agentProvider}`);
+  console.log(`   Agent: ${primaryConfig.provider}`);
+  if (fallbackProvider) {
+    console.log(`   Fallback: ${fallbackProvider}`);
+  }
+  if (providerPreference !== "auto") {
+    console.log(`   Provider source: config (${providerPreference})`);
+  }
+  if (configPath) {
+    const relativeConfigPath = path.relative(process.cwd(), configPath) || ".techlead/config.yaml";
+    console.log(`   Config: ${relativeConfigPath}`);
+  }
   console.log(`   Status: ${nextTask.status}`);
   console.log(`   Phase: ${nextTask.phase || "starting"}`);
 
@@ -360,12 +570,6 @@ export function cmdRun(): void {
   }
 
   writeCurrent({ task_id: nextTask.id, phase: nextTask.phase });
-
-  const config = createDefaultConfig(process.cwd());
-  if (!config) {
-    console.error("❌ Failed to create agent config");
-    return;
-  }
 
   const taskDir = getTaskDir(nextTask.id);
   let result: AgentResult;
@@ -393,9 +597,18 @@ export function cmdRun(): void {
         : `You are a software architect. Create a simple execution plan for this task:\n\nTask: ${nextTask.title}\n\nCreate these files in the plan/ directory:\n1. plan.md - 3-5 step execution plan\n2. discussion.md - Brief technical considerations\n\nKeep it concise.`;
 
       console.log("   🤖 Agent generating plan (simplified)...");
-      result = executeAgent(userPrompt, config, {
-        timeoutMs: 60000,
-      });
+      result = executePhaseAgent(
+        nextTask,
+        userPrompt,
+        {
+          timeoutMs,
+        },
+        "in_progress",
+        "plan",
+        "plan",
+        primaryConfig,
+        fallbackProvider
+      );
 
       if (result.success) {
         console.log("   ✅ Plan generated");
@@ -482,10 +695,19 @@ export function cmdRun(): void {
           : `Execute one step of the task.\n\nTask: ${nextTask.title}\n\nPlan:\n${plan}\n\nRecent work:\n${recentEntries}\n\nInstructions:\n1. Read the plan and recent work\n2. Execute ONE small step (15-30 min of work)\n3. Run verification (e.g., pnpm test)\n4. Report what was done\n\nOutput format:\n- Action: What you did\n- Files changed: List of files\n- Verification: Test results\n- Status: continue | completed`;
 
         console.log("   🤖 Agent executing step...");
-        result = executeAgent(userPrompt, config, {
-          outputFormat: "json",
-          timeoutMs: 300000,
-        });
+        result = executePhaseAgent(
+          nextTask,
+          userPrompt,
+          {
+            outputFormat: "json",
+            timeoutMs,
+          },
+          "in_progress",
+          "exec",
+          "exec",
+          primaryConfig,
+          fallbackProvider
+        );
 
         if (result.success) {
           console.log("   ✅ Step completed");
@@ -597,11 +819,20 @@ export function cmdRun(): void {
     const userPrompt = `Review the implementation for task: ${nextTask.title}\n\nCheck:\n1. Code quality and correctness\n2. Potential bugs or edge cases\n3. Security issues\n4. Performance concerns\n\nGenerate review/reviewer-1.md with structured findings (CRITICAL/WARNING/PASS).`;
 
     console.log(`   🤖 Agent reviewing code... (attempt ${nextTask.review_attempts})`);
-    result = executeAgent(userPrompt, config, {
-      systemPrompt,
-      outputFormat: "json",
-      timeoutMs: 120000,
-    });
+    result = executePhaseAgent(
+      nextTask,
+      userPrompt,
+      {
+        systemPrompt,
+        outputFormat: "json",
+        timeoutMs,
+      },
+      "review",
+      "review",
+      "review",
+      primaryConfig,
+      fallbackProvider
+    );
 
     if (result.success) {
       console.log("   ✅ Review completed");
@@ -653,6 +884,11 @@ export function cmdRun(): void {
   }
 
   if (nextTask.status === "testing" && nextTask.phase === "test") {
+    if (nextTask.review_passed !== true && nextTask.test_passed === true) {
+      returnTaskToReview(nextTask, taskDir, "Cannot mark done because review gate has not passed");
+      return;
+    }
+
     if (nextTask.test_passed === true) {
       console.log("\n   ✓ Already tested (passed)");
       console.log("   → Marking as Done\n");
@@ -716,11 +952,20 @@ export function cmdRun(): void {
     const userPrompt = `Test the implementation for task: ${nextTask.title}\n\nDesign and run:\n1. Unit tests\n2. Edge case tests\n3. Adversarial tests (attack scenarios)\n4. Integration tests\n\nGenerate test/adversarial-test.md with results (PASS/WARNING/CRITICAL).`;
 
     console.log(`   🤖 Agent testing... (attempt ${nextTask.test_attempts})`);
-    result = executeAgent(userPrompt, config, {
-      systemPrompt,
-      outputFormat: "json",
-      timeoutMs: 120000,
-    });
+    result = executePhaseAgent(
+      nextTask,
+      userPrompt,
+      {
+        systemPrompt,
+        outputFormat: "json",
+        timeoutMs,
+      },
+      "testing",
+      "test",
+      "test",
+      primaryConfig,
+      fallbackProvider
+    );
 
     if (result.success) {
       console.log("   ✅ Testing completed");
@@ -753,6 +998,15 @@ export function cmdRun(): void {
         writeTask(nextTask.id, nextTask);
         writeCurrent({ task_id: nextTask.id, phase: "exec" });
       } else {
+        if (nextTask.review_passed !== true) {
+          nextTask.test_passed = true;
+          returnTaskToReview(
+            nextTask,
+            taskDir,
+            "Cannot mark done because review gate has not passed"
+          );
+          return;
+        }
         console.log("\n   ✨ All tests passed!");
         console.log("   → Marking as Done\n");
         nextTask.status = "done";
@@ -802,14 +1056,14 @@ export function cmdLoop(options: {
   for (let cycle = 1; cycle <= maxCycles; cycle += 1) {
     const beforeCurrent = readCurrent();
     const beforeTask = beforeCurrent.task_id ? readTask(beforeCurrent.task_id) : null;
-    const beforeDoneCount = listAllTasks().filter((t) => t.status === "done").length;
+    const beforeDoneCount = listAllTasks().filter((t) => isTaskTerminallyDone(t)).length;
 
     console.log(`\n=== Loop Cycle ${cycle}/${maxCycles} ===`);
     cmdRun();
 
     const allTasks = listAllTasks();
-    const afterDoneCount = allTasks.filter((t) => t.status === "done").length;
-    const pendingCount = allTasks.filter((t) => t.status !== "done").length;
+    const afterDoneCount = allTasks.filter((t) => isTaskTerminallyDone(t)).length;
+    const pendingCount = allTasks.filter((t) => !isTaskTerminallyDone(t)).length;
     const afterCurrent = readCurrent();
     const afterTask = afterCurrent.task_id ? readTask(afterCurrent.task_id) : null;
 
@@ -861,6 +1115,12 @@ export function cmdAbort(): void {
   }
 
   const task = readTask(current.task_id);
+  // done is terminal — abort cannot downgrade it
+  if (task.status === "done") {
+    console.error(`❌ Task ${task.id} is already done and cannot be aborted.`);
+    writeCurrent({ task_id: null, phase: null });
+    return;
+  }
   task.status = "failed";
   writeTask(current.task_id, task);
   writeCurrent({ task_id: null, phase: null });
