@@ -430,7 +430,14 @@ function enforceControlledTaskState(
   context: string
 ): void {
   const latest = readTask(task.id);
-  if (latest.status === expectedStatus && latest.phase === expectedPhase) {
+  const metadataChanged =
+    latest.review_passed !== task.review_passed ||
+    latest.test_passed !== task.test_passed ||
+    latest.review_attempts !== task.review_attempts ||
+    latest.test_attempts !== task.test_attempts ||
+    latest.completed_at !== task.completed_at;
+
+  if (latest.status === expectedStatus && latest.phase === expectedPhase && !metadataChanged) {
     return;
   }
 
@@ -440,8 +447,14 @@ function enforceControlledTaskState(
 
   latest.status = expectedStatus;
   latest.phase = expectedPhase;
+  latest.review_passed = task.review_passed;
+  latest.test_passed = task.test_passed;
+  latest.review_attempts = task.review_attempts;
+  latest.test_attempts = task.test_attempts;
   if (expectedStatus !== "done") {
     latest.completed_at = null;
+  } else {
+    latest.completed_at = task.completed_at;
   }
   writeTask(task.id, latest);
 
@@ -452,6 +465,24 @@ function enforceControlledTaskState(
   task.test_passed = latest.test_passed;
   task.review_attempts = latest.review_attempts;
   task.test_attempts = latest.test_attempts;
+}
+
+function executePhaseAgent(
+  task: Task,
+  prompt: string,
+  options: AgentOptions,
+  expectedStatus: Task["status"],
+  expectedPhase: Task["phase"],
+  context: string,
+  primaryConfig: AgentConfig,
+  fallbackProvider: AgentProvider | null
+): AgentResult {
+  const exec = executeAgentWithFallback(prompt, primaryConfig, options, fallbackProvider);
+  enforceControlledTaskState(task, expectedStatus, expectedPhase, context);
+  if (exec.usedFallback && exec.result.success) {
+    console.log(`   ↪ Fallback provider used: ${exec.providerUsed}`);
+  }
+  return exec.result;
 }
 
 function returnTaskToReview(task: Task, taskDir: string, reason: string): void {
@@ -566,19 +597,18 @@ export function cmdRun(): void {
         : `You are a software architect. Create a simple execution plan for this task:\n\nTask: ${nextTask.title}\n\nCreate these files in the plan/ directory:\n1. plan.md - 3-5 step execution plan\n2. discussion.md - Brief technical considerations\n\nKeep it concise.`;
 
       console.log("   🤖 Agent generating plan (simplified)...");
-      const planExec = executeAgentWithFallback(
+      result = executePhaseAgent(
+        nextTask,
         userPrompt,
-        primaryConfig,
         {
           timeoutMs,
         },
+        "in_progress",
+        "plan",
+        "plan",
+        primaryConfig,
         fallbackProvider
       );
-      result = planExec.result;
-      enforceControlledTaskState(nextTask, "in_progress", "plan", "plan");
-      if (planExec.usedFallback && result.success) {
-        console.log(`   ↪ Fallback provider used: ${planExec.providerUsed}`);
-      }
 
       if (result.success) {
         console.log("   ✅ Plan generated");
@@ -665,20 +695,19 @@ export function cmdRun(): void {
           : `Execute one step of the task.\n\nTask: ${nextTask.title}\n\nPlan:\n${plan}\n\nRecent work:\n${recentEntries}\n\nInstructions:\n1. Read the plan and recent work\n2. Execute ONE small step (15-30 min of work)\n3. Run verification (e.g., pnpm test)\n4. Report what was done\n\nOutput format:\n- Action: What you did\n- Files changed: List of files\n- Verification: Test results\n- Status: continue | completed`;
 
         console.log("   🤖 Agent executing step...");
-        const stepExec = executeAgentWithFallback(
+        result = executePhaseAgent(
+          nextTask,
           userPrompt,
-          primaryConfig,
           {
             outputFormat: "json",
             timeoutMs,
           },
+          "in_progress",
+          "exec",
+          "exec",
+          primaryConfig,
           fallbackProvider
         );
-        result = stepExec.result;
-        enforceControlledTaskState(nextTask, "in_progress", "exec", "exec");
-        if (stepExec.usedFallback && result.success) {
-          console.log(`   ↪ Fallback provider used: ${stepExec.providerUsed}`);
-        }
 
         if (result.success) {
           console.log("   ✅ Step completed");
@@ -790,21 +819,20 @@ export function cmdRun(): void {
     const userPrompt = `Review the implementation for task: ${nextTask.title}\n\nCheck:\n1. Code quality and correctness\n2. Potential bugs or edge cases\n3. Security issues\n4. Performance concerns\n\nGenerate review/reviewer-1.md with structured findings (CRITICAL/WARNING/PASS).`;
 
     console.log(`   🤖 Agent reviewing code... (attempt ${nextTask.review_attempts})`);
-    const reviewExec = executeAgentWithFallback(
+    result = executePhaseAgent(
+      nextTask,
       userPrompt,
-      primaryConfig,
       {
         systemPrompt,
         outputFormat: "json",
         timeoutMs,
       },
+      "review",
+      "review",
+      "review",
+      primaryConfig,
       fallbackProvider
     );
-    result = reviewExec.result;
-    enforceControlledTaskState(nextTask, "review", "review", "review");
-    if (reviewExec.usedFallback && result.success) {
-      console.log(`   ↪ Fallback provider used: ${reviewExec.providerUsed}`);
-    }
 
     if (result.success) {
       console.log("   ✅ Review completed");
@@ -856,15 +884,12 @@ export function cmdRun(): void {
   }
 
   if (nextTask.status === "testing" && nextTask.phase === "test") {
+    if (nextTask.review_passed !== true && nextTask.test_passed === true) {
+      returnTaskToReview(nextTask, taskDir, "Cannot mark done because review gate has not passed");
+      return;
+    }
+
     if (nextTask.test_passed === true) {
-      if (nextTask.review_passed !== true) {
-        returnTaskToReview(
-          nextTask,
-          taskDir,
-          "Cannot mark done because review gate has not passed"
-        );
-        return;
-      }
       console.log("\n   ✓ Already tested (passed)");
       console.log("   → Marking as Done\n");
       nextTask.status = "done";
@@ -885,14 +910,6 @@ export function cmdRun(): void {
         const hasCritical = hasCriticalVerdict(existingTest);
 
         if (!hasCritical) {
-          if (nextTask.review_passed !== true) {
-            returnTaskToReview(
-              nextTask,
-              taskDir,
-              "Cannot mark done because review gate has not passed"
-            );
-            return;
-          }
           console.log("\n   ✓ Test file exists and passed");
           nextTask.test_passed = true;
           nextTask.status = "done";
@@ -935,21 +952,20 @@ export function cmdRun(): void {
     const userPrompt = `Test the implementation for task: ${nextTask.title}\n\nDesign and run:\n1. Unit tests\n2. Edge case tests\n3. Adversarial tests (attack scenarios)\n4. Integration tests\n\nGenerate test/adversarial-test.md with results (PASS/WARNING/CRITICAL).`;
 
     console.log(`   🤖 Agent testing... (attempt ${nextTask.test_attempts})`);
-    const testExec = executeAgentWithFallback(
+    result = executePhaseAgent(
+      nextTask,
       userPrompt,
-      primaryConfig,
       {
         systemPrompt,
         outputFormat: "json",
         timeoutMs,
       },
+      "testing",
+      "test",
+      "test",
+      primaryConfig,
       fallbackProvider
     );
-    result = testExec.result;
-    enforceControlledTaskState(nextTask, "testing", "test", "test");
-    if (testExec.usedFallback && result.success) {
-      console.log(`   ↪ Fallback provider used: ${testExec.providerUsed}`);
-    }
 
     if (result.success) {
       console.log("   ✅ Testing completed");

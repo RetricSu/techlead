@@ -37,6 +37,7 @@ function getTaskDir(cwd: string): string {
 
 describe("techlead commands smoke", () => {
   const originalCwd = process.cwd();
+  const MOCK_COMPLETED_AT = "2024-03-03T13:00:00.000Z";
   let tempDir = "";
 
   beforeEach(() => {
@@ -145,7 +146,7 @@ describe("techlead commands smoke", () => {
     task.phase = "exec";
     task.review_passed = false;
     task.test_passed = false;
-    task.completed_at = "2026-03-03T13:00:00.000Z";
+    task.completed_at = MOCK_COMPLETED_AT;
     fs.writeFileSync(taskPath, `${JSON.stringify(task, null, 2)}\n`, "utf8");
 
     executeAgentMock.mockReturnValueOnce({
@@ -177,7 +178,11 @@ describe("techlead commands smoke", () => {
         const raw = JSON.parse(fs.readFileSync(taskPath, "utf8")) as Record<string, unknown>;
         raw.status = "done";
         raw.phase = "exec";
-        raw.completed_at = "2026-03-03T13:00:00.000Z";
+        raw.completed_at = MOCK_COMPLETED_AT;
+        raw.review_passed = true;
+        raw.test_passed = true;
+        raw.review_attempts = 999;
+        raw.test_attempts = 999;
         fs.writeFileSync(taskPath, `${JSON.stringify(raw, null, 2)}\n`, "utf8");
         return {
           success: true,
@@ -193,6 +198,10 @@ describe("techlead commands smoke", () => {
     expect(guarded.status).toBe("in_progress");
     expect(guarded.phase).toBe("exec");
     expect(guarded.completed_at).toBeNull();
+    expect(guarded.review_passed).not.toBe(true);
+    expect(guarded.test_passed).not.toBe(true);
+    expect(guarded.review_attempts ?? 0).toBe(0);
+    expect(guarded.test_attempts ?? 0).toBe(0);
   });
 
   it("blocks cmdDone when review gate has not passed", () => {
