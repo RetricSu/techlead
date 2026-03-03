@@ -35,7 +35,7 @@ export function readJson<T>(filePath: string): T | null {
 
 export function writeJson(filePath: string, data: unknown): void {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + "\n", "utf8");
+  fs.writeFileSync(filePath, `${JSON.stringify(data, null, 2)}\n`, "utf8");
 }
 
 export function loadPromptTemplate(relativePath: string): string | null {
@@ -52,7 +52,10 @@ export function renderTemplate(template: string, vars: Record<string, string>): 
   return rendered;
 }
 
-export function extractTaggedJson(content: string, tag: "STATUS" | "VERDICT"): Record<string, unknown> | null {
+export function extractTaggedJson(
+  content: string,
+  tag: "STATUS" | "VERDICT"
+): Record<string, unknown> | null {
   const regex = new RegExp(`<!--\\s*${tag}:\\s*(\\{[\\s\\S]*?\\})\\s*-->`, "i");
   const match = content.match(regex);
   if (!match?.[1]) return null;
@@ -102,7 +105,12 @@ export function detectQualityGateCommand(): string | null {
   return null;
 }
 
-export function runQualityGate(): { passed: boolean; command?: string; output?: string; error?: string } {
+export function runQualityGate(): {
+  passed: boolean;
+  command?: string;
+  output?: string;
+  error?: string;
+} {
   const command = detectQualityGateCommand();
   if (!command) {
     return { passed: true };

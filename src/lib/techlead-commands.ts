@@ -6,7 +6,7 @@ import {
   createDefaultConfig,
   type AgentResult,
 } from "./agent-adapter.js";
-import { Task } from "./techlead-types.js";
+import type { Task } from "./techlead-types.js";
 import {
   getKnowledgeDir,
   getTaskDir,
@@ -62,7 +62,7 @@ export function cmdWorld(): void {
   );
 
   if (result.success) {
-    console.log("\n" + result.content);
+    console.log(`\n${result.content}`);
   } else {
     console.error("❌ Agent error:", result.error);
     process.exit(1);
@@ -89,7 +89,7 @@ export function cmdInit(): void {
     console.log("✅ TechLead initialized.");
   }
 
-  console.log("\nNext: techlead add \"your task\"");
+  console.log('\nNext: techlead add "your task"');
 }
 
 export function cmdAdd(title: string): void {
@@ -210,7 +210,9 @@ export function cmdPlan(taskId?: string): void {
     return;
   }
   if (task.status !== "backlog") {
-    console.error(`❌ Task ${task.id} is not in backlog (current: ${task.status}/${task.phase || "-"}).`);
+    console.error(
+      `❌ Task ${task.id} is not in backlog (current: ${task.status}/${task.phase || "-"}).`
+    );
     return;
   }
 
@@ -225,7 +227,9 @@ export function cmdStart(taskId?: string): void {
     return;
   }
   if (!(task.status === "in_progress" && task.phase === "plan")) {
-    console.error(`❌ Task ${task.id} is not ready for start (expected in_progress/plan, got ${task.status}/${task.phase || "-"}).`);
+    console.error(
+      `❌ Task ${task.id} is not ready for start (expected in_progress/plan, got ${task.status}/${task.phase || "-"}).`
+    );
     return;
   }
 
@@ -240,7 +244,9 @@ export function cmdStep(taskId?: string): void {
     return;
   }
   if (!(task.status === "in_progress" && task.phase === "exec")) {
-    console.error(`❌ Task ${task.id} is not in exec phase (current: ${task.status}/${task.phase || "-"}).`);
+    console.error(
+      `❌ Task ${task.id} is not in exec phase (current: ${task.status}/${task.phase || "-"}).`
+    );
     return;
   }
 
@@ -255,7 +261,9 @@ export function cmdReview(taskId?: string): void {
     return;
   }
   if (!(task.status === "review" && task.phase === "review")) {
-    console.error(`❌ Task ${task.id} is not in review phase (current: ${task.status}/${task.phase || "-"}).`);
+    console.error(
+      `❌ Task ${task.id} is not in review phase (current: ${task.status}/${task.phase || "-"}).`
+    );
     return;
   }
 
@@ -270,7 +278,9 @@ export function cmdTest(taskId?: string): void {
     return;
   }
   if (!(task.status === "testing" && task.phase === "test")) {
-    console.error(`❌ Task ${task.id} is not in test phase (current: ${task.status}/${task.phase || "-"}).`);
+    console.error(
+      `❌ Task ${task.id} is not in test phase (current: ${task.status}/${task.phase || "-"}).`
+    );
     return;
   }
 
@@ -291,7 +301,9 @@ export function cmdDone(taskId?: string): void {
   }
 
   if (!(task.status === "testing" && task.test_passed === true)) {
-    console.error(`❌ Task ${task.id} is not ready for done; run test first (current: ${task.status}/${task.phase || "-"}).`);
+    console.error(
+      `❌ Task ${task.id} is not ready for done; run test first (current: ${task.status}/${task.phase || "-"}).`
+    );
     return;
   }
 
@@ -390,16 +402,28 @@ export function cmdRun(): void {
         const overviewPath = path.join(planDir, ".overview.md");
 
         if (!fs.existsSync(discussionPath)) {
-          fs.writeFileSync(discussionPath, `# Discussion: ${nextTask.title}\n\n${result.content}\n`, "utf8");
+          fs.writeFileSync(
+            discussionPath,
+            `# Discussion: ${nextTask.title}\n\n${result.content}\n`,
+            "utf8"
+          );
         }
         if (!fs.existsSync(planMdPath)) {
-          fs.writeFileSync(planMdPath, `# Plan: ${nextTask.title}\n\nSee discussion.md for details.\n\n## Steps\n\n1. [ ] Implement\n2. [ ] Test\n3. [ ] Review\n`, "utf8");
+          fs.writeFileSync(
+            planMdPath,
+            `# Plan: ${nextTask.title}\n\nSee discussion.md for details.\n\n## Steps\n\n1. [ ] Implement\n2. [ ] Test\n3. [ ] Review\n`,
+            "utf8"
+          );
         }
         if (!fs.existsSync(abstractPath)) {
           fs.writeFileSync(abstractPath, result.content.substring(0, 200), "utf8");
         }
         if (!fs.existsSync(overviewPath)) {
-          fs.writeFileSync(overviewPath, `# Overview: ${nextTask.title}\n\nSee discussion.md and plan.md\n`, "utf8");
+          fs.writeFileSync(
+            overviewPath,
+            `# Overview: ${nextTask.title}\n\nSee discussion.md and plan.md\n`,
+            "utf8"
+          );
         }
 
         console.log("\n   📁 Files created:");
@@ -462,7 +486,11 @@ export function cmdRun(): void {
           console.log("   ✅ Step completed");
           console.log(`   💰 Cost: $${result.costUsd?.toFixed(4) || "?"}`);
 
-          fs.appendFileSync(workLogPath, `\n## ${new Date().toISOString()}\n\n${result.content}\n\n---\n`, "utf8");
+          fs.appendFileSync(
+            workLogPath,
+            `\n## ${new Date().toISOString()}\n\n${result.content}\n\n---\n`,
+            "utf8"
+          );
 
           if (isStepCompleted(result.content)) {
             console.log("\n   ✨ Task appears complete!");
@@ -575,7 +603,11 @@ export function cmdRun(): void {
       console.log(`   💰 Cost: $${result.costUsd?.toFixed(4) || "?"}`);
 
       const reviewPath = path.join(reviewDir, "reviewer-1.md");
-      fs.writeFileSync(reviewPath, `# Adversarial Review: ${nextTask.title}\n\n${result.content}\n`, "utf8");
+      fs.writeFileSync(
+        reviewPath,
+        `# Adversarial Review: ${nextTask.title}\n\n${result.content}\n`,
+        "utf8"
+      );
 
       const workLogPath = path.join(taskDir, "work-log.md");
       if (fs.existsSync(workLogPath)) {
@@ -626,7 +658,9 @@ export function cmdRun(): void {
       writeCurrent({ task_id: null, phase: null });
 
       console.log(`   ✅ Task ${nextTask.id} completed!`);
-      console.log(`   Duration: ${nextTask.started_at && nextTask.completed_at ? Math.round((new Date(nextTask.completed_at).getTime() - new Date(nextTask.started_at).getTime()) / 1000 / 60) + " min" : "N/A"}`);
+      console.log(
+        `   Duration: ${nextTask.started_at && nextTask.completed_at ? `${Math.round((new Date(nextTask.completed_at).getTime() - new Date(nextTask.started_at).getTime()) / 1000 / 60)} min` : "N/A"}`
+      );
       return;
     } else if (nextTask.test_attempts && nextTask.test_attempts >= 1) {
       const testPath = path.join(taskDir, "test", "adversarial-test.md");
@@ -688,7 +722,11 @@ export function cmdRun(): void {
       console.log(`   💰 Cost: $${result.costUsd?.toFixed(4) || "?"}`);
 
       const testPath = path.join(testDir, "adversarial-test.md");
-      fs.writeFileSync(testPath, `# Adversarial Test: ${nextTask.title}\n\n${result.content}\n`, "utf8");
+      fs.writeFileSync(
+        testPath,
+        `# Adversarial Test: ${nextTask.title}\n\n${result.content}\n`,
+        "utf8"
+      );
 
       const workLogPath = path.join(taskDir, "work-log.md");
       if (fs.existsSync(workLogPath)) {
@@ -720,7 +758,9 @@ export function cmdRun(): void {
         writeCurrent({ task_id: null, phase: null });
 
         console.log(`   ✅ Task ${nextTask.id} completed!`);
-        console.log(`   Duration: ${nextTask.started_at && nextTask.completed_at ? Math.round((new Date(nextTask.completed_at).getTime() - new Date(nextTask.started_at).getTime()) / 1000 / 60) + " min" : "N/A"}`);
+        console.log(
+          `   Duration: ${nextTask.started_at && nextTask.completed_at ? `${Math.round((new Date(nextTask.completed_at).getTime() - new Date(nextTask.started_at).getTime()) / 1000 / 60)} min` : "N/A"}`
+        );
       }
     } else {
       console.error("   ❌ Testing failed");
@@ -729,7 +769,10 @@ export function cmdRun(): void {
   }
 }
 
-export function cmdLoop(options: { maxCycles?: string | number; maxNoProgress?: string | number }): void {
+export function cmdLoop(options: {
+  maxCycles?: string | number;
+  maxNoProgress?: string | number;
+}): void {
   const maxCyclesRaw = options.maxCycles ?? 20;
   const maxNoProgressRaw = options.maxNoProgress ?? 3;
   const maxCycles = Number(maxCyclesRaw);
@@ -744,7 +787,9 @@ export function cmdLoop(options: { maxCycles?: string | number; maxNoProgress?: 
     return;
   }
 
-  console.log(`\n🔁 Starting autonomous loop (max cycles: ${maxCycles}, max no-progress: ${maxNoProgress})`);
+  console.log(
+    `\n🔁 Starting autonomous loop (max cycles: ${maxCycles}, max no-progress: ${maxNoProgress})`
+  );
 
   let previousState = "";
   let noProgressCount = 0;

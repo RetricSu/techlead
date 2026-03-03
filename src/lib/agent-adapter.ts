@@ -347,13 +347,13 @@ export async function executeAgentAsync(
       });
     }
 
-    child.stdout!.on("data", (data: Buffer) => {
+    child.stdout?.on("data", (data: Buffer) => {
       const chunk = data.toString();
       chunks.push(chunk);
       onChunk?.(chunk);
     });
 
-    child.stderr!.on("data", (data: Buffer) => {
+    child.stderr?.on("data", (data: Buffer) => {
       const chunk = data.toString();
       chunks.push(chunk);
       onChunk?.(chunk);
@@ -364,9 +364,7 @@ export async function executeAgentAsync(
 
       if (options.outputFormat === "json") {
         const result =
-          config.provider === "claude"
-            ? parseClaudeOutput(output)
-            : parseCodexOutput(output);
+          config.provider === "claude" ? parseClaudeOutput(output) : parseCodexOutput(output);
         resolve(result);
         return;
       }
@@ -409,9 +407,7 @@ export function detectAgent(): AgentProvider | null {
 /**
  * Create default config for detected agent
  */
-export function createDefaultConfig(
-  workingDir?: string
-): AgentConfig | null {
+export function createDefaultConfig(workingDir?: string): AgentConfig | null {
   const provider = detectAgent();
   if (!provider) return null;
 

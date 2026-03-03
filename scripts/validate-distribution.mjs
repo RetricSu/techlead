@@ -13,8 +13,12 @@ const root = process.cwd();
 const failures = [];
 const warnings = [];
 
-function fail(msg) { failures.push(msg); }
-function warn(msg) { warnings.push(msg); }
+function fail(msg) {
+  failures.push(msg);
+}
+function _warn(msg) {
+  warnings.push(msg);
+}
 
 function checkFile(relative) {
   if (!fs.existsSync(path.join(root, relative))) {
@@ -48,7 +52,7 @@ const requiredFiles = [
   "prompts/plan/multirole.md",
   "prompts/exec/step.md",
   "prompts/review/adversarial.md",
-  "prompts/test/adversarial.md"
+  "prompts/test/adversarial.md",
 ];
 
 for (const relative of requiredFiles) {
@@ -95,7 +99,7 @@ if (!fs.existsSync(cliPath)) {
 } else {
   const result = spawnSync("node", [cliPath, "--help"], {
     encoding: "utf8",
-    timeout: 10_000
+    timeout: 10_000,
   });
 
   if (result.status !== 0) {

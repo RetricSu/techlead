@@ -3,8 +3,8 @@
  */
 
 import {
-  AgentConfig,
-  AgentOptions,
+  type AgentConfig,
+  type AgentOptions,
   createDefaultConfig,
   detectAgent,
   executeAgent,
@@ -27,11 +27,9 @@ async function example1() {
   const config = createDefaultConfig(process.cwd());
   if (!config) return;
 
-  const result = executeAgent(
-    "List the files in the current directory",
-    config,
-    { outputFormat: "text" }
-  );
+  const result = executeAgent("List the files in the current directory", config, {
+    outputFormat: "text",
+  });
 
   console.log("Success:", result.success);
   console.log("Content:", result.content.substring(0, 500));
@@ -39,7 +37,7 @@ async function example1() {
 }
 
 // Example 2: Execute with system prompt from file
-async function example2() {
+async function _example2() {
   console.log("\n=== Example 2: With system prompt ===\n");
 
   const config: AgentConfig = {
@@ -56,11 +54,7 @@ async function example2() {
     timeoutMs: 60000,
   };
 
-  const result = executeAgent(
-    "What is the current git branch?",
-    config,
-    options
-  );
+  const result = executeAgent("What is the current git branch?", config, options);
 
   console.log("Success:", result.success);
   console.log("Session ID:", result.sessionId);
@@ -68,7 +62,7 @@ async function example2() {
 }
 
 // Example 3: Async with streaming
-async function example3() {
+async function _example3() {
   console.log("\n=== Example 3: Async with streaming ===\n");
 
   const config: AgentConfig = {
@@ -90,7 +84,7 @@ async function example3() {
 }
 
 // Example 4: Structured output with JSON schema
-async function example4() {
+async function _example4() {
   console.log("\n=== Example 4: Structured output ===\n");
 
   const schema = {
@@ -134,7 +128,7 @@ async function example4() {
 }
 
 // Example 5: Multi-step task (simulating subagent)
-async function example5() {
+async function _example5() {
   console.log("\n=== Example 5: Multi-step (simulating subagent) ===\n");
 
   const workingDir = process.cwd();
@@ -178,8 +172,7 @@ async function example5() {
     "Review the changes made to the codebase. List any issues.",
     config,
     {
-      systemPrompt:
-        "You are a code reviewer. Be critical and find potential bugs.",
+      systemPrompt: "You are a code reviewer. Be critical and find potential bugs.",
       outputFormat: "text",
     }
   );

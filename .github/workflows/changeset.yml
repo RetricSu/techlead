@@ -1,0 +1,47 @@
+name: Changeset
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+jobs:
+  check:
+    name: Check Changeset
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for skip label
+        id: check-label
+        run: |
+          labels=$(echo '${{ toJson(github.event.pull_request.labels) }}' | jq -r '.[].name')
+          if echo "$labels" | grep -q "skip-changeset"; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "Found skip-changeset label, skipping changeset check"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "No skip-changeset label found, will check for changeset"
+          fi
+
+      - name: Check for changeset files
+        if: steps.check-label.outputs.skip == 'false'
+        run: |
+          changeset_files=$(find .changeset -name "*.md" -type f ! -name "README.md" 2>/dev/null | wc -l)
+          if [ "$changeset_files" -eq 0 ]; then
+            echo "❌ Error: No changeset files found."
+            echo "Please run 'pnpm changeset' to create a changeset for your changes."
+            echo "Or add the 'skip-changeset' label to your PR if this change doesn't need a version bump."
+            exit 1
+          else
+            echo "✅ Found $changeset_files changeset file(s)"
+            find .changeset -name "*.md" -type f ! -name "README.md" | head -5
+          fi
+
+      - name: Report success
+        if: steps.check-label.outputs.skip == 'true'
+        run: |
+          echo "✅ Changeset check skipped due to 'skip-changeset' label"

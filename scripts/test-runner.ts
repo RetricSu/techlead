@@ -74,7 +74,9 @@ const BASE_URL = process.env.TEST_BASE_URL ?? "http://localhost:3000";
 const API_KEY = process.env.TEST_API_KEY ?? "";
 const SETUP_ENDPOINT = "/api/debug/setup";
 const CHAT_ENDPOINT = "/api/debug/chat";
-const RESULTS_DIR = path.resolve(process.env.TEST_RESULTS_DIR ?? "docs/quality/query-tests/results");
+const RESULTS_DIR = path.resolve(
+  process.env.TEST_RESULTS_DIR ?? "docs/quality/query-tests/results"
+);
 
 function authHeaders(): Record<string, string> {
   if (!API_KEY) return {};
@@ -84,7 +86,7 @@ function authHeaders(): Record<string, string> {
 async function createSession(): Promise<string> {
   const res = await fetch(`${BASE_URL}${SETUP_ENDPOINT}`, {
     method: "POST",
-    headers: authHeaders()
+    headers: authHeaders(),
   });
 
   if (!res.ok) {
@@ -102,7 +104,7 @@ async function sendMessage(message: string, sessionId?: string): Promise<ChatRes
   const res = await fetch(`${BASE_URL}${CHAT_ENDPOINT}`, {
     method: "POST",
     headers: { ...authHeaders(), "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
   });
 
   if (!res.ok) {
@@ -116,7 +118,11 @@ function toolName(call: ToolCall): string {
   return call.toolName ?? call.name ?? "";
 }
 
-function evaluateAssertion(assertion: Assertion, response: string, toolCalls: ToolCall[]): AssertionResult {
+function evaluateAssertion(
+  assertion: Assertion,
+  response: string,
+  toolCalls: ToolCall[]
+): AssertionResult {
   const [[type, value]] = Object.entries(assertion);
 
   switch (type) {
@@ -135,19 +141,31 @@ function evaluateAssertion(assertion: Assertion, response: string, toolCalls: To
     case "response_contains": {
       const terms = toStringArray(value);
       const missing = terms.filter((term) => !response.includes(term));
-      return result(assertion, missing.length === 0, missing.length === 0 ? "all terms found" : `missing: ${missing.join(", ")}`);
+      return result(
+        assertion,
+        missing.length === 0,
+        missing.length === 0 ? "all terms found" : `missing: ${missing.join(", ")}`
+      );
     }
 
     case "response_contains_any": {
       const terms = toStringArray(value);
       const matched = terms.filter((term) => response.includes(term));
-      return result(assertion, matched.length > 0, matched.length > 0 ? `matched: ${matched.join(", ")}` : "no term matched");
+      return result(
+        assertion,
+        matched.length > 0,
+        matched.length > 0 ? `matched: ${matched.join(", ")}` : "no term matched"
+      );
     }
 
     case "response_not_contains": {
       const terms = toStringArray(value);
       const leaked = terms.filter((term) => response.includes(term));
-      return result(assertion, leaked.length === 0, leaked.length === 0 ? "no leakage" : `leaked: ${leaked.join(", ")}`);
+      return result(
+        assertion,
+        leaked.length === 0,
+        leaked.length === 0 ? "no leakage" : `leaked: ${leaked.join(", ")}`
+      );
     }
 
     case "response_not_empty": {
@@ -165,7 +183,7 @@ function result(assertion: Assertion, passed: boolean, details: string): Asserti
     assertion,
     passed,
     details,
-    level: "must"
+    level: "must",
   };
 }
 
@@ -238,8 +256,8 @@ async function runFlowFile(filePath: string): Promise<RunResult> {
       mustPassed,
       shouldTotal,
       shouldPassed,
-      overallPass
-    }
+      overallPass,
+    },
   };
 }
 
