@@ -48,7 +48,7 @@ jobs:
         run: pnpm biome format .
 
       - name: Run linter
-        run: pnpm biome lint .
+        run: pnpm biome lint --error-on-warnings .
 
       - name: Run TypeScript type check
         run: pnpm run typecheck
