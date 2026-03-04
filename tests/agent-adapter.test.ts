@@ -1,5 +1,5 @@
 /**
- * Tests for agent-adapter
+ * Tests for agent/adapter module
  */
 
 import { describe, expect, it } from "vitest";

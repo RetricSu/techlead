@@ -1,5 +1,5 @@
 /**
- * Tests for agent-logger
+ * Tests for agent/logger module
  */
 
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";

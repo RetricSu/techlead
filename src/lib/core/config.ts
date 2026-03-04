@@ -99,9 +99,9 @@ const defaultConfig: TechLeadConfig = {
   timeoutMs: 300000,
 };
 
-const DEFAULT_TIMEOUT_MS = 300000;
-const DEFAULT_MAX_BUDGET_USD = 1.0;
-const DEFAULT_ALLOWED_TOOLS = ["Read", "Edit", "Bash", "Glob"];
+const DEFAULT_TIMEOUT_MS = defaultConfig.timeoutMs ?? 300000;
+const DEFAULT_MAX_BUDGET_USD = defaultConfig.maxBudgetUsd ?? 1.0;
+const DEFAULT_ALLOWED_TOOLS = defaultConfig.allowedTools ?? ["Read", "Edit", "Bash", "Glob"];
 
 /**
  * Possible config file names
@@ -162,6 +162,17 @@ async function loadConfigFile(configPath: string): Promise<Partial<TechLeadConfi
 
     // JS/ESM config
     if (configPath.endsWith(".js") || configPath.endsWith(".mjs")) {
+      if (process.env.TECHLEAD_ALLOW_EXECUTABLE_CONFIG === "0") {
+        console.warn(
+          `Skipping executable config file '${configPath}' because TECHLEAD_ALLOW_EXECUTABLE_CONFIG=0`
+        );
+        return null;
+      }
+
+      console.warn(
+        `Loading executable config file '${configPath}'. Only use trusted config files in this location.`
+      );
+
       // Clear module cache for hot reload in development
       const modulePath = pathToFileURL(resolve(configPath)).href;
       const config = await import(modulePath);
@@ -188,12 +199,26 @@ function findConfigFile(dir: string): string | null {
   return null;
 }
 
+function getRuntimeConfigPath(cwd: string): string | null {
+  const projectRuntimeConfigPath = join(cwd, ".techlead", "config.yaml");
+  if (existsSync(projectRuntimeConfigPath)) {
+    return projectRuntimeConfigPath;
+  }
+
+  const homeRuntimeConfigPath = join(homedir(), ".techlead", "config.yaml");
+  if (existsSync(homeRuntimeConfigPath)) {
+    return homeRuntimeConfigPath;
+  }
+
+  return null;
+}
+
 function readRuntimeConfigFile(cwd: string): {
   configPath: string | null;
   config: RuntimeConfigFile | null;
   error?: string;
 } {
-  const configPath = getConfigPath(cwd);
+  const configPath = getRuntimeConfigPath(cwd);
   if (!configPath || !existsSync(configPath)) {
     return { configPath: null, config: null };
   }

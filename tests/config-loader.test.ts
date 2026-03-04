@@ -1,5 +1,5 @@
 /**
- * Tests for config-loader
+ * Tests for core/config module
  */
 
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
