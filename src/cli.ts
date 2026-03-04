@@ -19,6 +19,7 @@ import {
   cmdTest,
   cmdWorld,
 } from "./lib/core/commands.js";
+import { cmdWatch } from "./lib/core/watch.js";
 
 async function main(): Promise<void> {
   const cli = cac("techlead");
@@ -53,6 +54,12 @@ async function main(): Promise<void> {
     .option("--max-no-progress <n>", "Stop after N consecutive no-progress cycles", { default: 3 })
     .action((options) => cmdLoop(options));
   cli.command("abort", "Abort current task").action(cmdAbort);
+
+  cli
+    .command("watch", "Watch active agent runs")
+    .option("--follow", "Continuously watch for changes")
+    .option("--run <runId>", "Show specific run details")
+    .action((options) => cmdWatch(options));
 
   cli.help();
   cli.parse();
