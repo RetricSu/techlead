@@ -3,9 +3,9 @@
  * 用于加载和解析 benchmark-5.json
  */
 
-import { readFileSync } from "fs";
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import type { SWEBenchTestCase, ParsedTestCase } from "./types.js";
 
 const __filename = fileURLToPath(import.meta.url);

@@ -66,7 +66,7 @@ describe("AgentRuntime", () => {
       }),
       "utf8"
     );
-    const rt = new AgentRuntime(techleadDir);
+    new AgentRuntime(techleadDir);
     const state = JSON.parse(fs.readFileSync(path.join(runsDir, "run-dead.json"), "utf8"));
     expect(state.status).toBe("failed");
   });

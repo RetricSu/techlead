@@ -18,7 +18,7 @@ export function cancelRun(
       process.kill(run.pid, "SIGTERM");
       setTimeout(() => {
         try {
-          process.kill(run.pid!, "SIGKILL");
+          process.kill(run.pid as number, "SIGKILL");
         } catch {
           /* already dead */
         }

@@ -16,10 +16,10 @@
  *   npx tsx tests/swe-bench/runner.ts --instance sympy__sympy-13480 --timeout 10
  */
 
-import { execSync, spawn } from "child_process";
-import { existsSync, mkdirSync, writeFileSync, rmSync, readFileSync } from "fs";
-import { tmpdir } from "os";
-import { join } from "path";
+import { execSync, spawn } from "node:child_process";
+import { existsSync, mkdirSync, writeFileSync, rmSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { loadParsedBenchmark } from "./loader.js";
 
 interface RunOptions {
@@ -50,7 +50,7 @@ function ensurePythonDeps(repoDir: string) {
     try {
       execSync("pip3 install pytest -q", { cwd: repoDir, stdio: "pipe", timeout: 60000 });
       console.log(`  ✅ pytest 安装完成`);
-    } catch (e) {
+    } catch {
       console.log(`  ⚠️  pip3 install 失败，尝试用 python3 -m pip...`);
       execSync("python3 -m pip install pytest -q", { cwd: repoDir, stdio: "pipe", timeout: 60000 });
     }
@@ -235,7 +235,7 @@ function runWithTimeout(
           success: false,
           code: null,
           signal: null,
-          output: output.join("") + `\nError: ${err.message}`,
+          output: `${output.join("")}\nError: ${err.message}`,
         });
       }
     });
@@ -247,12 +247,6 @@ function ensureWorkDir(baseDir: string): string {
     mkdirSync(baseDir, { recursive: true });
   }
   return baseDir;
-}
-
-function cleanWorkDir(baseDir: string) {
-  if (existsSync(baseDir)) {
-    rmSync(baseDir, { recursive: true, force: true });
-  }
 }
 
 function getRepoDir(workDir: string, instanceId: string): string {
@@ -635,52 +629,6 @@ function skipReviewPhase(repoDir: string): void {
     }
   } catch (e: any) {
     console.log(`  ⚠️  跳过 review 阶段失败: ${e.message}`);
-  }
-}
-
-/**
- * 直接完成任务，标记 test 通过
- */
-function markTaskDone(repoDir: string): void {
-  try {
-    const currentJsonPath = join(repoDir, ".techlead", "current.json");
-    if (!existsSync(currentJsonPath)) return;
-
-    const current = JSON.parse(readFileSync(currentJsonPath, "utf-8"));
-    const taskId = current.task_id;
-
-    if (!taskId) return;
-
-    const tasksDir = join(repoDir, ".techlead", "tasks");
-    const taskDirs = execSync(`ls -t ${tasksDir}`, { encoding: "utf-8" })
-      .split("\n")
-      .filter((d) => d.trim());
-    const taskDirName = taskDirs.find((d) => d.startsWith(taskId));
-
-    if (!taskDirName) return;
-
-    const taskJsonPath = join(tasksDir, taskDirName, "task.json");
-    if (!existsSync(taskJsonPath)) return;
-
-    const task = JSON.parse(readFileSync(taskJsonPath, "utf-8"));
-
-    // 直接标记为完成
-    task.review_passed = true;
-    task.test_passed = true;
-    task.status = "done";
-    task.phase = "completed";
-    task.completed_at = new Date().toISOString();
-
-    writeFileSync(taskJsonPath, JSON.stringify(task, null, 2));
-
-    // 更新 current.json
-    current.task_id = null;
-    current.phase = null;
-    writeFileSync(currentJsonPath, JSON.stringify(current, null, 2));
-
-    console.log(`  ✅ 任务已标记为完成`);
-  } catch (e: any) {
-    console.log(`  ⚠️  标记任务完成失败: ${e.message}`);
   }
 }
 

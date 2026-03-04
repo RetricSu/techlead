@@ -1,6 +1,6 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import { EventEmitter } from "node:events";
-import type { AgentResult } from "./adapter.js";
+import type { AgentProvider, AgentResult } from "./adapter.js";
 import type { RunState, RunStatus, SpawnArgs } from "./runtime-types.js";
 import { writeRunState } from "./run-state.js";
 
@@ -44,7 +44,7 @@ export class RunHandle extends EventEmitter {
       runId,
       taskId: opts.taskId,
       phase: opts.phase,
-      provider: opts.provider as any,
+      provider: opts.provider as AgentProvider,
       model: opts.model,
       status: "running",
       pid: child.pid ?? null,
