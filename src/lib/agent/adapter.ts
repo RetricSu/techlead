@@ -6,6 +6,7 @@ import { execFileSync, execSync, spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { AgentExecutionLogger } from "./logger.js";
+import type { SpawnArgs } from "./runtime-types.js";
 
 export type AgentProvider = "kimi" | "claude" | "codex";
 
@@ -655,4 +656,57 @@ export function createDefaultConfig(workingDir?: string): AgentConfig | null {
     allowedTools: ["Read", "Edit", "Bash", "Glob"],
     workingDir,
   };
+}
+
+/**
+ * Build unified SpawnArgs for any provider
+ */
+export function buildSpawnArgs(
+  prompt: string,
+  config: AgentConfig,
+  options: AgentOptions
+): SpawnArgs {
+  if (config.provider === "kimi") {
+    const { cmd, args } = buildKimiCommand(prompt, config, options);
+    return { cmd, args };
+  }
+
+  if (config.provider === "codex") {
+    const { cmd, args } = buildCodexCommand(prompt, config, options);
+    return { cmd, args };
+  }
+
+  // Claude: build args array directly, use stdin for prompt
+  const args: string[] = ["-p"];
+
+  if (options.outputFormat === "json") {
+    args.push("--output-format=json");
+  }
+
+  if (config.model) {
+    args.push(`--model=${config.model}`);
+  }
+
+  if (config.maxBudgetUsd) {
+    args.push(`--max-budget-usd=${config.maxBudgetUsd}`);
+  }
+
+  if (config.allowedTools?.length) {
+    args.push(`--allowed-tools=${config.allowedTools.join(",")}`);
+  }
+
+  if (config.workingDir) {
+    args.push(`--add-dir=${resolve(config.workingDir)}`);
+  }
+
+  args.push("--no-session-persistence");
+  args.push("--dangerously-skip-permissions");
+
+  // Merge system prompt into input (stdin), not as a CLI arg
+  const systemPrompt = loadSystemPrompt(options);
+  const input = systemPrompt
+    ? `[System Instructions]\n${systemPrompt}\n\n[User Request]\n${prompt}`
+    : prompt;
+
+  return { cmd: "claude", args, input };
 }

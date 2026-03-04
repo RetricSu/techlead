@@ -7,6 +7,7 @@ import type { AgentConfig, AgentOptions } from "../src/lib/agent/adapter.js";
 import {
   buildClaudeCommand,
   buildCodexCommand,
+  buildSpawnArgs,
   createDefaultConfig,
   detectAgent,
   isAgentAvailable,
@@ -162,6 +163,37 @@ describe("Agent Adapter", () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("Failed to parse");
+    });
+  });
+
+  describe("buildSpawnArgs", () => {
+    it("should build spawn args for claude", () => {
+      const result = buildSpawnArgs(
+        "Test prompt",
+        { provider: "claude", model: "sonnet", maxBudgetUsd: 0.5, workingDir: "/tmp/test" },
+        { outputFormat: "json", systemPrompt: "You are a test assistant." }
+      );
+      expect(result.cmd).toBe("claude");
+      expect(result.args).toContain("-p");
+      expect(result.args).toContain("--output-format=json");
+      expect(result.args).toContain("--model=sonnet");
+      expect(result.args).toContain("--max-budget-usd=0.5");
+      expect(result.args).toContain("--no-session-persistence");
+      expect(result.args).toContain("--dangerously-skip-permissions");
+      expect(result.input).toContain("[System Instructions]");
+      expect(result.input).toContain("Test prompt");
+    });
+
+    it("should build spawn args for codex", () => {
+      const result = buildSpawnArgs("Test prompt", { provider: "codex", model: "gpt-4o" }, {});
+      expect(result.cmd).toBe("codex");
+      expect(result.args).toContain("exec");
+    });
+
+    it("should build spawn args for kimi", () => {
+      const result = buildSpawnArgs("Test prompt", { provider: "kimi" }, { outputFormat: "json" });
+      expect(result.cmd).toBe("kimi");
+      expect(result.args).toContain("--print");
     });
   });
 });
