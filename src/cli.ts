@@ -19,6 +19,7 @@ import {
   cmdTest,
   cmdWorld,
 } from "./lib/core/commands.js";
+import { cmdCancel } from "./lib/core/cancel.js";
 import { cmdWatch } from "./lib/core/watch.js";
 
 async function main(): Promise<void> {
@@ -60,6 +61,8 @@ async function main(): Promise<void> {
     .option("--follow", "Continuously watch for changes")
     .option("--run <runId>", "Show specific run details")
     .action((options) => cmdWatch(options));
+
+  cli.command("cancel [runId]", "Cancel an active agent run").action((runId) => cmdCancel(runId));
 
   cli.help();
   cli.parse();
