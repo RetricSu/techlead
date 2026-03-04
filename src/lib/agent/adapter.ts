@@ -367,7 +367,7 @@ export function executeAgent(
     const errorMessage = isError ? error.message : String(error);
     const stdout =
       isError && typeof (error as { stdout?: unknown }).stdout === "string"
-        ? (error as { stdout: string }).stdout || ""
+        ? String((error as unknown as { stdout: string }).stdout) || ""
         : "";
 
     // Log error

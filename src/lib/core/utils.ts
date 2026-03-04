@@ -128,11 +128,11 @@ export function runQualityGate(): {
     const isError = error instanceof Error;
     const stdout =
       isError && typeof (error as { stdout?: unknown }).stdout === "string"
-        ? (error as { stdout: string }).stdout
+        ? String((error as unknown as { stdout: string }).stdout)
         : "";
     const stderr =
       isError && typeof (error as { stderr?: unknown }).stderr === "string"
-        ? (error as { stderr: string }).stderr
+        ? String((error as unknown as { stderr: string }).stderr)
         : "";
     const output = `${stdout}\n${stderr}`.trim();
     return {
