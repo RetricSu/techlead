@@ -1,13 +1,13 @@
 /**
- * Agent Adapter - Unified interface for Claude Code and Codex CLI
+ * Agent Adapter - Unified interface for Claude Code, Codex CLI, and Kimi CLI
  */
 
-import { execFileSync, execSync, spawn } from "node:child_process";
+import { execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { AgentExecutionLogger } from "./logger.js";
+import type { SpawnArgs } from "./runtime-types.js";
 
-export type AgentProvider = "claude" | "codex";
+export type AgentProvider = "kimi" | "claude" | "codex";
 
 interface CodexOutputData {
   type: "result" | "message";
@@ -141,6 +141,9 @@ export function buildClaudeCommand(
   // Disable session persistence for non-interactive
   args.push("--no-session-persistence");
 
+  // Skip permissions for fully automated execution
+  args.push("--dangerously-skip-permissions");
+
   // Add the prompt (no escaping needed, execSync handles it)
   args.push(finalPrompt);
 
@@ -167,11 +170,9 @@ export function buildCodexCommand(
     args.push(`-m=${config.model}`);
   }
 
-  // Full auto mode (non-interactive)
-  args.push("--full-auto");
-
-  // Sandbox mode
-  args.push("--sandbox=workspace-write");
+  // Full auto mode with bypass approvals for non-interactive execution
+  // --dangerously-bypass-approvals-and-sandbox is required for fully automated CI runs
+  args.push("--dangerously-bypass-approvals-and-sandbox");
 
   // Working directory
   if (config.workingDir) {
@@ -248,259 +249,105 @@ export function parseCodexOutput(output: string): AgentResult {
 }
 
 /**
- * Execute agent with unified interface
+ * Build Kimi CLI command
+ * Kimi uses --print mode for non-interactive execution (auto-approves all actions)
  */
-export function executeAgent(
+export function buildKimiCommand(
   prompt: string,
   config: AgentConfig,
-  options: AgentOptions = {}
-): AgentResult {
-  if (!isAgentAvailable(config.provider)) {
-    return {
-      success: false,
-      content: "",
-      error: `${config.provider} CLI not found. Please install it.`,
-    };
+  options: AgentOptions
+): { cmd: string; args: string[] } {
+  const args: string[] = [];
+
+  // Print mode: non-interactive, auto-approves all actions (--yolo)
+  args.push("--print");
+
+  // Output format - JSON for structured parsing
+  if (options.outputFormat === "json") {
+    args.push("--output-format=stream-json");
+  } else {
+    args.push("--output-format=text");
   }
 
-  // Initialize logger if enabled
-  // Priority: config.taskId > options.taskId > generate new
-  const effectiveTaskId = config.taskId ?? options.taskId;
-
-  const logger = options.enableLogging
-    ? new AgentExecutionLogger({
-        taskId: effectiveTaskId,
-        sessionId: options.sessionId,
-        logDir: options.logDir,
-        provider: config.provider,
-        model: config.model,
-        workingDir: config.workingDir,
-      })
-    : null;
-
-  // Log input
-  logger?.logInput(prompt, {
-    systemPrompt: options.systemPrompt,
-    outputFormat: options.outputFormat,
-  });
-
-  try {
-    let output: string;
-
-    if (config.provider === "claude") {
-      // Claude: use stdin to pass prompt to avoid shell escaping issues
-      const args: string[] = ["-p"];
-
-      // Output format
-      if (options.outputFormat === "json") {
-        args.push("--output-format=json");
-      }
-
-      // Model
-      if (config.model) {
-        args.push(`--model=${config.model}`);
-      }
-
-      // Budget limit
-      if (config.maxBudgetUsd) {
-        args.push(`--max-budget-usd=${config.maxBudgetUsd}`);
-      }
-
-      // Allowed tools
-      if (config.allowedTools?.length) {
-        args.push(`--allowed-tools=${config.allowedTools.join(",")}`);
-      }
-
-      // Working directory
-      if (config.workingDir) {
-        args.push(`--add-dir=${resolve(config.workingDir)}`);
-      }
-
-      // Disable session persistence for non-interactive
-      args.push("--no-session-persistence");
-
-      // Prepare input (system + user prompt)
-      const systemPrompt = loadSystemPrompt(options);
-      const input = systemPrompt
-        ? `[System Instructions]\n${systemPrompt}\n\n[User Request]\n${prompt}`
-        : prompt;
-
-      output = execFileSync("claude", args, {
-        encoding: "utf8",
-        timeout: options.timeoutMs || 300000,
-        cwd: config.workingDir,
-        env: { ...process.env, ...options.env },
-        maxBuffer: 50 * 1024 * 1024,
-        input, // Pass via stdin
-      });
-
-      // Log output
-      logger?.logStdout(output);
-      logger?.logEnd(0);
-
-      if (options.outputFormat === "json") {
-        return parseClaudeOutput(output);
-      }
-      return { success: true, content: output };
-    } else {
-      // Codex: use spawn with args array to avoid shell escaping
-      const { cmd, args } = buildCodexCommand(prompt, config, options);
-      output = execFileSync(cmd, args, {
-        encoding: "utf8",
-        timeout: options.timeoutMs || 300000,
-        cwd: config.workingDir,
-        env: { ...process.env, ...options.env },
-        maxBuffer: 50 * 1024 * 1024,
-      });
-
-      // Log output
-      logger?.logStdout(output);
-      logger?.logEnd(0);
-
-      if (options.outputFormat === "json") {
-        return parseCodexOutput(output);
-      }
-      return { success: true, content: output };
-    }
-  } catch (error: unknown) {
-    const isError = error instanceof Error;
-    const errorMessage = isError ? error.message : String(error);
-    const stdout =
-      isError && typeof (error as { stdout?: unknown }).stdout === "string"
-        ? String((error as unknown as { stdout: string }).stdout) || ""
-        : "";
-
-    // Log error
-    logger?.logError(isError ? error : new Error(errorMessage));
-    logger?.logEnd(null);
-
-    return {
-      success: false,
-      content: stdout,
-      error: errorMessage,
-    };
+  // Model
+  if (config.model) {
+    args.push(`--model=${config.model}`);
   }
+
+  // Working directory
+  if (config.workingDir) {
+    args.push(`--work-dir=${resolve(config.workingDir)}`);
+  }
+
+  // Additional directories
+  if (config.workingDir) {
+    args.push(`--add-dir=${resolve(config.workingDir)}`);
+  }
+
+  // System prompt via config - merge into user prompt
+  const systemPrompt = loadSystemPrompt(options);
+  let finalPrompt = prompt;
+  if (systemPrompt) {
+    finalPrompt = `[System Instructions]\n${systemPrompt}\n\n[User Request]\n${prompt}`;
+  }
+
+  // Add the prompt
+  args.push("-p", finalPrompt);
+
+  return { cmd: "kimi", args };
 }
 
 /**
- * Execute agent asynchronously with streaming support
+ * Parse Kimi output
+ * Kimi's --print mode outputs a structured text format (TurnBegin, StepBegin, ThinkPart, etc.)
+ * We extract the relevant information from this format
  */
-export async function executeAgentAsync(
-  prompt: string,
-  config: AgentConfig,
-  options: AgentOptions = {},
-  onChunk?: (chunk: string) => void
-): Promise<AgentResult> {
-  if (!isAgentAvailable(config.provider)) {
-    return {
-      success: false,
-      content: "",
-      error: `${config.provider} CLI not found`,
-    };
+export function parseKimiOutput(output: string): AgentResult {
+  // Check if output contains success indicators
+  const hasToolCalls = output.includes("ToolCall(") || output.includes('"type":"function"');
+  const hasTurnEnd = output.includes("TurnEnd()") || output.includes('"type":"turn.end"');
+  const hasTextPart = output.includes("TextPart(") || output.includes('"type":"text"');
+
+  // Extract text content from TextPart sections
+  const textParts: string[] = [];
+  const textRegex = /TextPart\(\s*type='text',\s*text='([^']+)'/g;
+  let match: RegExpExecArray | null;
+  match = textRegex.exec(output);
+  while (match !== null) {
+    textParts.push(match[1]);
+    match = textRegex.exec(output);
   }
 
-  // Initialize logger if enabled
-  // Priority: config.taskId > options.taskId > generate new
-  const effectiveTaskId = config.taskId ?? options.taskId;
-
-  const logger = options.enableLogging
-    ? new AgentExecutionLogger({
-        taskId: effectiveTaskId,
-        sessionId: options.sessionId,
-        logDir: options.logDir,
-        provider: config.provider,
-        model: config.model,
-        workingDir: config.workingDir,
-      })
-    : null;
-
-  // Log input
-  logger?.logInput(prompt, {
-    systemPrompt: options.systemPrompt,
-    outputFormat: options.outputFormat,
-  });
-
-  return new Promise((resolve) => {
-    const chunks: string[] = [];
-    let child: ReturnType<typeof spawn>;
-
-    if (config.provider === "claude") {
-      // Claude: use shell command
-      const command = buildClaudeCommand(prompt, config, options);
-      child = spawn(command, {
-        shell: true,
-        cwd: config.workingDir,
-        env: { ...process.env, ...options.env },
-      });
-    } else {
-      // Codex: use spawn with args array
-      const { cmd, args } = buildCodexCommand(prompt, config, options);
-      child = spawn(cmd, args, {
-        cwd: config.workingDir,
-        env: { ...process.env, ...options.env },
-      });
+  // Also try to find text in the new format
+  const newTextRegex = /text='([^']+)'[^}]*\n\s*\)/g;
+  match = newTextRegex.exec(output);
+  while (match !== null) {
+    if (!textParts.includes(match[1])) {
+      textParts.push(match[1]);
     }
+    match = newTextRegex.exec(output);
+  }
 
-    child.stdout?.on("data", (data: Buffer) => {
-      const chunk = data.toString();
-      chunks.push(chunk);
-      logger?.logStdout(chunk);
-      onChunk?.(chunk);
-    });
+  const content = textParts.join("\n\n") || output;
 
-    child.stderr?.on("data", (data: Buffer) => {
-      const chunk = data.toString();
-      chunks.push(chunk);
-      logger?.logStderr(chunk);
-      onChunk?.(chunk);
-    });
+  // Success if we have tool calls and turn completed
+  const success = output.length > 0 && (hasTurnEnd || hasToolCalls || hasTextPart);
 
-    child.on("close", (code) => {
-      logger?.logEnd(code);
-      const output = chunks.join("");
-
-      if (options.outputFormat === "json") {
-        const result =
-          config.provider === "claude" ? parseClaudeOutput(output) : parseCodexOutput(output);
-        resolve(result);
-        return;
-      }
-
-      resolve({
-        success: code === 0,
-        content: output,
-      });
-    });
-
-    child.on("error", (error) => {
-      logger?.logError(error);
-      logger?.logEnd(null);
-      resolve({
-        success: false,
-        content: chunks.join(""),
-        error: error.message,
-      });
-    });
-
-    // Timeout
-    setTimeout(() => {
-      child.kill();
-      logger?.logEnd(null);
-      resolve({
-        success: false,
-        content: chunks.join(""),
-        error: "Timeout",
-      });
-    }, options.timeoutMs || 300000);
-  });
+  return {
+    success,
+    content,
+  };
 }
 
 /**
  * Auto-detect available agent
+ * Kimi is preferred for fully automated execution (--print mode with auto-approval)
+ * Falls back to Codex, then Claude
  */
 export function detectAgent(): AgentProvider | null {
-  if (isAgentAvailable("claude")) return "claude";
+  if (isAgentAvailable("kimi")) return "kimi";
   if (isAgentAvailable("codex")) return "codex";
+  if (isAgentAvailable("claude")) return "claude";
   return null;
 }
 
@@ -511,11 +358,71 @@ export function createDefaultConfig(workingDir?: string): AgentConfig | null {
   const provider = detectAgent();
   if (!provider) return null;
 
+  // Default models for each provider
+  const defaultModels: Record<AgentProvider, string | undefined> = {
+    kimi: undefined, // Kimi uses default model from config
+    claude: "sonnet",
+    codex: "gpt-4o",
+  };
+
   return {
     provider,
-    model: provider === "claude" ? "sonnet" : "gpt-4o",
+    model: defaultModels[provider],
     maxBudgetUsd: 1.0,
     allowedTools: ["Read", "Edit", "Bash", "Glob"],
     workingDir,
   };
+}
+
+/**
+ * Build unified SpawnArgs for any provider
+ */
+export function buildSpawnArgs(
+  prompt: string,
+  config: AgentConfig,
+  options: AgentOptions
+): SpawnArgs {
+  if (config.provider === "kimi") {
+    const { cmd, args } = buildKimiCommand(prompt, config, options);
+    return { cmd, args };
+  }
+
+  if (config.provider === "codex") {
+    const { cmd, args } = buildCodexCommand(prompt, config, options);
+    return { cmd, args };
+  }
+
+  // Claude: build args array directly, use stdin for prompt
+  const args: string[] = ["-p"];
+
+  if (options.outputFormat === "json") {
+    args.push("--output-format=json");
+  }
+
+  if (config.model) {
+    args.push(`--model=${config.model}`);
+  }
+
+  if (config.maxBudgetUsd) {
+    args.push(`--max-budget-usd=${config.maxBudgetUsd}`);
+  }
+
+  if (config.allowedTools?.length) {
+    args.push(`--allowed-tools=${config.allowedTools.join(",")}`);
+  }
+
+  if (config.workingDir) {
+    args.push(`--add-dir=${resolve(config.workingDir)}`);
+  }
+
+  args.push("--no-session-persistence");
+  args.push("--dangerously-skip-permissions");
+
+  // Merge system prompt into input (stdin), not as a CLI arg
+  const systemPrompt = loadSystemPrompt(options);
+  const input = systemPrompt
+    ? `[System Instructions]\n${systemPrompt}\n\n[User Request]\n${prompt}`
+    : prompt;
+
+  return { cmd: "claude", args, input };
 }

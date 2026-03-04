@@ -5,10 +5,14 @@ import {
   type AgentOptions,
   type AgentProvider,
   type AgentResult,
+  buildSpawnArgs,
   createDefaultConfig,
   detectAgent,
-  executeAgent,
+  parseClaudeOutput,
+  parseCodexOutput,
+  parseKimiOutput,
 } from "../agent/adapter.js";
+import { AgentRuntime } from "../agent/runtime.js";
 import { defaultModelForProvider, resolveRuntimeAgentConfig } from "./config.js";
 import {
   getKnowledgeDir,
@@ -39,11 +43,17 @@ import {
   sanitizeDirName,
 } from "./utils.js";
 
+function parseOutputForProvider(output: string, provider: AgentProvider): AgentResult {
+  if (provider === "claude") return parseClaudeOutput(output);
+  if (provider === "codex") return parseCodexOutput(output);
+  return parseKimiOutput(output);
+}
+
 export function cmdHello(): void {
   console.log("hello from techlead");
 }
 
-export function cmdWorld(): void {
+export async function cmdWorld(): Promise<void> {
   const agentProvider = detectAgent();
   if (!agentProvider) {
     console.error("❌ No agent CLI found.");
@@ -59,15 +69,19 @@ export function cmdWorld(): void {
   config.provider = "claude";
 
   console.log("🌍 Asking Claude to say hello to the world...");
-  const result = executeAgent(
+  const runtime = new AgentRuntime(getTechleadDir());
+  const spawnArgs = buildSpawnArgs(
     'Say "Hello, World!" in a creative and inspiring way. Keep it under 3 sentences.',
     config,
-    {
-      timeoutMs: 30000,
-      enableLogging: true,
-      taskId: `world-${Date.now()}`,
-    }
+    { timeoutMs: 30000 }
   );
+  const handle = runtime.spawn(spawnArgs, {
+    taskId: `world-${Date.now()}`,
+    phase: "exec",
+    provider: config.provider,
+    model: config.model,
+  });
+  const result = await handle.result();
 
   if (result.success) {
     console.log(`\n${result.content}`);
@@ -212,7 +226,7 @@ export function cmdStatus(): void {
   console.log(`\n   Run: techlead run`);
 }
 
-export function cmdPlan(taskId?: string): void {
+export async function cmdPlan(taskId?: string): Promise<void> {
   const task = resolveTaskForCommand(taskId);
   if (!task) {
     console.error("❌ No task found for plan command.");
@@ -226,10 +240,10 @@ export function cmdPlan(taskId?: string): void {
   }
 
   selectTaskForExecution(task);
-  cmdRun();
+  await cmdRun();
 }
 
-export function cmdStart(taskId?: string): void {
+export async function cmdStart(taskId?: string): Promise<void> {
   const task = resolveTaskForCommand(taskId);
   if (!task) {
     console.error("❌ No task found for start command.");
@@ -243,10 +257,10 @@ export function cmdStart(taskId?: string): void {
   }
 
   selectTaskForExecution(task);
-  cmdRun();
+  await cmdRun();
 }
 
-export function cmdStep(taskId?: string): void {
+export async function cmdStep(taskId?: string): Promise<void> {
   const task = resolveTaskForCommand(taskId);
   if (!task) {
     console.error("❌ No task found for step command.");
@@ -260,10 +274,10 @@ export function cmdStep(taskId?: string): void {
   }
 
   selectTaskForExecution(task);
-  cmdRun();
+  await cmdRun();
 }
 
-export function cmdReview(taskId?: string): void {
+export async function cmdReview(taskId?: string): Promise<void> {
   const task = resolveTaskForCommand(taskId);
   if (!task) {
     console.error("❌ No task found for review command.");
@@ -277,10 +291,10 @@ export function cmdReview(taskId?: string): void {
   }
 
   selectTaskForExecution(task);
-  cmdRun();
+  await cmdRun();
 }
 
-export function cmdTest(taskId?: string): void {
+export async function cmdTest(taskId?: string): Promise<void> {
   const task = resolveTaskForCommand(taskId);
   if (!task) {
     console.error("❌ No task found for test command.");
@@ -294,7 +308,7 @@ export function cmdTest(taskId?: string): void {
   }
 
   selectTaskForExecution(task);
-  cmdRun();
+  await cmdRun();
 }
 
 export function cmdDone(taskId?: string): void {
@@ -347,13 +361,28 @@ export function cmdDone(taskId?: string): void {
   console.log(`✅ Task ${task.id} marked as done.`);
 }
 
-function executeAgentWithFallback(
+async function executeAgentWithFallback(
+  runtime: AgentRuntime,
   prompt: string,
   primaryConfig: AgentConfig,
   options: AgentOptions,
   fallbackProvider: AgentProvider | null
-): { result: AgentResult; providerUsed: AgentProvider; usedFallback: boolean } {
-  const primaryResult = executeAgent(prompt, primaryConfig, options);
+): Promise<{ result: AgentResult; providerUsed: AgentProvider; usedFallback: boolean }> {
+  const spawnArgs = buildSpawnArgs(prompt, primaryConfig, options);
+  const handle = runtime.spawn(spawnArgs, {
+    taskId: primaryConfig.taskId ?? "unknown",
+    phase: "exec",
+    provider: primaryConfig.provider,
+    model: primaryConfig.model,
+    timeoutMs: options.timeoutMs,
+  });
+  let primaryResult = await handle.result();
+
+  // Parse output if JSON format requested
+  if (options.outputFormat === "json") {
+    primaryResult = parseOutputForProvider(primaryResult.content, primaryConfig.provider);
+  }
+
   if (primaryResult.success || !fallbackProvider || fallbackProvider === primaryConfig.provider) {
     return { result: primaryResult, providerUsed: primaryConfig.provider, usedFallback: false };
   }
@@ -367,7 +396,19 @@ function executeAgentWithFallback(
     provider: fallbackProvider,
     model: defaultModelForProvider(fallbackProvider),
   };
-  const fallbackResult = executeAgent(prompt, fallbackConfig, options);
+  const fbSpawnArgs = buildSpawnArgs(prompt, fallbackConfig, options);
+  const fbHandle = runtime.spawn(fbSpawnArgs, {
+    taskId: fallbackConfig.taskId ?? "unknown",
+    phase: "exec",
+    provider: fallbackProvider,
+    model: fallbackConfig.model,
+    timeoutMs: options.timeoutMs,
+  });
+  let fallbackResult = await fbHandle.result();
+
+  if (options.outputFormat === "json") {
+    fallbackResult = parseOutputForProvider(fallbackResult.content, fallbackProvider);
+  }
 
   if (fallbackResult.success) {
     return { result: fallbackResult, providerUsed: fallbackProvider, usedFallback: true };
@@ -467,7 +508,8 @@ function enforceControlledTaskState(
   task.test_attempts = latest.test_attempts;
 }
 
-function executePhaseAgent(
+async function executePhaseAgent(
+  runtime: AgentRuntime,
   task: Task,
   prompt: string,
   options: AgentOptions,
@@ -476,8 +518,14 @@ function executePhaseAgent(
   context: string,
   primaryConfig: AgentConfig,
   fallbackProvider: AgentProvider | null
-): AgentResult {
-  const exec = executeAgentWithFallback(prompt, primaryConfig, options, fallbackProvider);
+): Promise<AgentResult> {
+  const exec = await executeAgentWithFallback(
+    runtime,
+    prompt,
+    primaryConfig,
+    options,
+    fallbackProvider
+  );
   enforceControlledTaskState(task, expectedStatus, expectedPhase, context);
   if (exec.usedFallback && exec.result.success) {
     console.log(`   ↪ Fallback provider used: ${exec.providerUsed}`);
@@ -496,7 +544,7 @@ function returnTaskToReview(task: Task, taskDir: string, reason: string): void {
   fs.mkdirSync(path.join(taskDir, "review"), { recursive: true });
 }
 
-export function cmdRun(): void {
+export async function cmdRun(): Promise<void> {
   const repairedTasks = repairInvalidDoneTasks();
   if (repairedTasks.length > 0) {
     console.log(
@@ -529,18 +577,20 @@ export function cmdRun(): void {
     return;
   }
 
-  const runtime = resolveRuntimeAgentConfig(process.cwd());
-  if (!runtime.ok) {
-    console.error(`\n❌ ${runtime.error}`);
-    if (runtime.configPath) {
-      console.error(`   Config: ${runtime.configPath}`);
+  const runtimeConfig = resolveRuntimeAgentConfig(process.cwd());
+  if (!runtimeConfig.ok) {
+    console.error(`\n❌ ${runtimeConfig.error}`);
+    if (runtimeConfig.configPath) {
+      console.error(`   Config: ${runtimeConfig.configPath}`);
     }
     console.error("   Install Claude Code: npm install -g @anthropic-ai/claude-code");
     console.error("   Install Codex: npm install -g @openai/codex");
     return;
   }
   const { primaryConfig, fallbackProvider, timeoutMs, configPath, providerPreference } =
-    runtime.value;
+    runtimeConfig.value;
+
+  const runtime = new AgentRuntime(getTechleadDir());
 
   console.log(`\n🚀 Running: ${nextTask.id} - ${nextTask.title}`);
   console.log(`   Agent: ${primaryConfig.provider}`);
@@ -597,7 +647,8 @@ export function cmdRun(): void {
         : `You are a software architect. Create a simple execution plan for this task:\n\nTask: ${nextTask.title}\n\nCreate these files in the plan/ directory:\n1. plan.md - 3-5 step execution plan\n2. discussion.md - Brief technical considerations\n\nKeep it concise.`;
 
       console.log("   🤖 Agent generating plan (simplified)...");
-      result = executePhaseAgent(
+      result = await executePhaseAgent(
+        runtime,
         nextTask,
         userPrompt,
         {
@@ -695,7 +746,8 @@ export function cmdRun(): void {
           : `Execute one step of the task.\n\nTask: ${nextTask.title}\n\nPlan:\n${plan}\n\nRecent work:\n${recentEntries}\n\nInstructions:\n1. Read the plan and recent work\n2. Execute ONE small step (15-30 min of work)\n3. Run verification (e.g., pnpm test)\n4. Report what was done\n\nOutput format:\n- Action: What you did\n- Files changed: List of files\n- Verification: Test results\n- Status: continue | completed`;
 
         console.log("   🤖 Agent executing step...");
-        result = executePhaseAgent(
+        result = await executePhaseAgent(
+          runtime,
           nextTask,
           userPrompt,
           {
@@ -819,7 +871,8 @@ export function cmdRun(): void {
     const userPrompt = `Review the implementation for task: ${nextTask.title}\n\nCheck:\n1. Code quality and correctness\n2. Potential bugs or edge cases\n3. Security issues\n4. Performance concerns\n\nGenerate review/reviewer-1.md with structured findings (CRITICAL/WARNING/PASS).`;
 
     console.log(`   🤖 Agent reviewing code... (attempt ${nextTask.review_attempts})`);
-    result = executePhaseAgent(
+    result = await executePhaseAgent(
+      runtime,
       nextTask,
       userPrompt,
       {
@@ -952,7 +1005,8 @@ export function cmdRun(): void {
     const userPrompt = `Test the implementation for task: ${nextTask.title}\n\nDesign and run:\n1. Unit tests\n2. Edge case tests\n3. Adversarial tests (attack scenarios)\n4. Integration tests\n\nGenerate test/adversarial-test.md with results (PASS/WARNING/CRITICAL).`;
 
     console.log(`   🤖 Agent testing... (attempt ${nextTask.test_attempts})`);
-    result = executePhaseAgent(
+    result = await executePhaseAgent(
+      runtime,
       nextTask,
       userPrompt,
       {
@@ -1028,10 +1082,10 @@ export function cmdRun(): void {
   }
 }
 
-export function cmdLoop(options: {
+export async function cmdLoop(options: {
   maxCycles?: string | number;
   maxNoProgress?: string | number;
-}): void {
+}): Promise<void> {
   const maxCyclesRaw = options.maxCycles ?? 20;
   const maxNoProgressRaw = options.maxNoProgress ?? 3;
   const maxCycles = Number(maxCyclesRaw);
@@ -1059,7 +1113,7 @@ export function cmdLoop(options: {
     const beforeDoneCount = listAllTasks().filter((t) => isTaskTerminallyDone(t)).length;
 
     console.log(`\n=== Loop Cycle ${cycle}/${maxCycles} ===`);
-    cmdRun();
+    await cmdRun();
 
     const allTasks = listAllTasks();
     const afterDoneCount = allTasks.filter((t) => isTaskTerminallyDone(t)).length;
