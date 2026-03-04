@@ -1,18 +1,18 @@
 /**
- * Tests for agent-adapter
+ * Tests for agent/adapter module
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
+import type { AgentConfig, AgentOptions } from "../src/lib/agent/adapter.js";
 import {
-  isAgentAvailable,
-  detectAgent,
-  createDefaultConfig,
   buildClaudeCommand,
   buildCodexCommand,
+  createDefaultConfig,
+  detectAgent,
+  isAgentAvailable,
   parseClaudeOutput,
   parseCodexOutput,
-} from "./agent-adapter.js";
-import type { AgentConfig, AgentOptions } from "./agent-adapter.js";
+} from "../src/lib/agent/adapter.js";
 
 describe("Agent Adapter", () => {
   describe("Detection", () => {

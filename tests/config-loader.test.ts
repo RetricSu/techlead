@@ -1,12 +1,12 @@
 /**
- * Tests for config-loader
+ * Tests for core/config module
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadConfig, getConfigPath } from "./config-loader.js";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { getConfigPath, loadConfig } from "../src/lib/core/config.js";
 
 describe("Config Loader", () => {
   let tempDir: string;
