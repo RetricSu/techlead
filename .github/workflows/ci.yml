@@ -45,7 +45,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Check formatting
-        run: pnpm biome format .
+        run: pnpm biome format --reporter=summary .
 
       - name: Run linter
         run: pnpm biome lint --error-on-warnings .
