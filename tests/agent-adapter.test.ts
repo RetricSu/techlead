@@ -34,7 +34,7 @@ describe("Agent Adapter", () => {
       const agent = detectAgent();
       console.log("Detected agent:", agent);
       // Should be null, "claude", or "codex"
-      expect([null, "claude", "codex"]).toContain(agent);
+      expect([null, "kimi", "claude", "codex"]).toContain(agent);
     });
   });
 
@@ -43,7 +43,7 @@ describe("Agent Adapter", () => {
       const config = createDefaultConfig("/tmp/test");
       if (config) {
         expect(config.workingDir).toBe("/tmp/test");
-        expect(["claude", "codex"]).toContain(config.provider);
+        expect(["kimi", "claude", "codex"]).toContain(config.provider);
         expect(config.maxBudgetUsd).toBe(1.0);
         expect(config.allowedTools).toBeDefined();
       }
@@ -91,7 +91,7 @@ describe("Agent Adapter", () => {
       expect(result.cmd).toBe("codex");
       expect(result.args).toContain("exec");
       expect(result.args).toContain("--json");
-      expect(result.args).toContain("--full-auto");
+      expect(result.args).toContain("--dangerously-bypass-approvals-and-sandbox");
       expect(result.args).toContain("-m=gpt-4o");
       expect(result.args).toContain("Test prompt");
     });
