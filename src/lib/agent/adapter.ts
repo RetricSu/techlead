@@ -1,5 +1,5 @@
 /**
- * Agent Adapter - Unified interface for Claude Code and Codex CLI
+ * Agent Adapter - Unified interface for Claude Code, Codex CLI, and Kimi CLI
  */
 
 import { execFileSync, execSync, spawn } from "node:child_process";
@@ -7,7 +7,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { AgentExecutionLogger } from "./logger.js";
 
-export type AgentProvider = "claude" | "codex";
+export type AgentProvider = "kimi" | "claude" | "codex";
 
 interface CodexOutputData {
   type: "result" | "message";
@@ -141,6 +141,9 @@ export function buildClaudeCommand(
   // Disable session persistence for non-interactive
   args.push("--no-session-persistence");
 
+  // Skip permissions for fully automated execution
+  args.push("--dangerously-skip-permissions");
+
   // Add the prompt (no escaping needed, execSync handles it)
   args.push(finalPrompt);
 
@@ -167,11 +170,9 @@ export function buildCodexCommand(
     args.push(`-m=${config.model}`);
   }
 
-  // Full auto mode (non-interactive)
-  args.push("--full-auto");
-
-  // Sandbox mode
-  args.push("--sandbox=workspace-write");
+  // Full auto mode with bypass approvals for non-interactive execution
+  // --dangerously-bypass-approvals-and-sandbox is required for fully automated CI runs
+  args.push("--dangerously-bypass-approvals-and-sandbox");
 
   // Working directory
   if (config.workingDir) {
@@ -248,6 +249,97 @@ export function parseCodexOutput(output: string): AgentResult {
 }
 
 /**
+ * Build Kimi CLI command
+ * Kimi uses --print mode for non-interactive execution (auto-approves all actions)
+ */
+export function buildKimiCommand(
+  prompt: string,
+  config: AgentConfig,
+  options: AgentOptions
+): { cmd: string; args: string[] } {
+  const args: string[] = [];
+
+  // Print mode: non-interactive, auto-approves all actions (--yolo)
+  args.push("--print");
+
+  // Output format - JSON for structured parsing
+  if (options.outputFormat === "json") {
+    args.push("--output-format=stream-json");
+  } else {
+    args.push("--output-format=text");
+  }
+
+  // Model
+  if (config.model) {
+    args.push(`--model=${config.model}`);
+  }
+
+  // Working directory
+  if (config.workingDir) {
+    args.push(`--work-dir=${resolve(config.workingDir)}`);
+  }
+
+  // Additional directories
+  if (config.workingDir) {
+    args.push(`--add-dir=${resolve(config.workingDir)}`);
+  }
+
+  // System prompt via config - merge into user prompt
+  const systemPrompt = loadSystemPrompt(options);
+  let finalPrompt = prompt;
+  if (systemPrompt) {
+    finalPrompt = `[System Instructions]\n${systemPrompt}\n\n[User Request]\n${prompt}`;
+  }
+
+  // Add the prompt
+  args.push("-p", finalPrompt);
+
+  return { cmd: "kimi", args };
+}
+
+/**
+ * Parse Kimi output
+ * Kimi's --print mode outputs a structured text format (TurnBegin, StepBegin, ThinkPart, etc.)
+ * We extract the relevant information from this format
+ */
+export function parseKimiOutput(output: string): AgentResult {
+  // Check if output contains success indicators
+  const hasToolCalls = output.includes("ToolCall(") || output.includes('"type":"function"');
+  const hasTurnEnd = output.includes("TurnEnd()") || output.includes('"type":"turn.end"');
+  const hasTextPart = output.includes("TextPart(") || output.includes('"type":"text"');
+
+  // Extract text content from TextPart sections
+  const textParts: string[] = [];
+  const textRegex = /TextPart\(\s*type='text',\s*text='([^']+)'/g;
+  let match: RegExpExecArray | null;
+  match = textRegex.exec(output);
+  while (match !== null) {
+    textParts.push(match[1]);
+    match = textRegex.exec(output);
+  }
+
+  // Also try to find text in the new format
+  const newTextRegex = /text='([^']+)'[^}]*\n\s*\)/g;
+  match = newTextRegex.exec(output);
+  while (match !== null) {
+    if (!textParts.includes(match[1])) {
+      textParts.push(match[1]);
+    }
+    match = newTextRegex.exec(output);
+  }
+
+  const content = textParts.join("\n\n") || output;
+
+  // Success if we have tool calls and turn completed
+  const success = output.length > 0 && (hasTurnEnd || hasToolCalls || hasTextPart);
+
+  return {
+    success,
+    content,
+  };
+}
+
+/**
  * Execute agent with unified interface
  */
 export function executeAgent(
@@ -287,7 +379,26 @@ export function executeAgent(
   try {
     let output: string;
 
-    if (config.provider === "claude") {
+    if (config.provider === "kimi") {
+      // Kimi: use print mode for non-interactive execution
+      const { cmd, args } = buildKimiCommand(prompt, config, options);
+      output = execFileSync(cmd, args, {
+        encoding: "utf8",
+        timeout: options.timeoutMs || 300000,
+        cwd: config.workingDir,
+        env: { ...process.env, ...options.env },
+        maxBuffer: 50 * 1024 * 1024,
+      });
+
+      // Log output
+      logger?.logStdout(output);
+      logger?.logEnd(0);
+
+      if (options.outputFormat === "json") {
+        return parseKimiOutput(output);
+      }
+      return { success: true, content: output };
+    } else if (config.provider === "claude") {
       // Claude: use stdin to pass prompt to avoid shell escaping issues
       const args: string[] = ["-p"];
 
@@ -318,6 +429,9 @@ export function executeAgent(
 
       // Disable session persistence for non-interactive
       args.push("--no-session-persistence");
+
+      // Skip permissions for fully automated execution
+      args.push("--dangerously-skip-permissions");
 
       // Prepare input (system + user prompt)
       const systemPrompt = loadSystemPrompt(options);
@@ -424,7 +538,14 @@ export async function executeAgentAsync(
     const chunks: string[] = [];
     let child: ReturnType<typeof spawn>;
 
-    if (config.provider === "claude") {
+    if (config.provider === "kimi") {
+      // Kimi: use spawn with args array
+      const { cmd, args } = buildKimiCommand(prompt, config, options);
+      child = spawn(cmd, args, {
+        cwd: config.workingDir,
+        env: { ...process.env, ...options.env },
+      });
+    } else if (config.provider === "claude") {
       // Claude: use shell command
       const command = buildClaudeCommand(prompt, config, options);
       child = spawn(command, {
@@ -460,8 +581,14 @@ export async function executeAgentAsync(
       const output = chunks.join("");
 
       if (options.outputFormat === "json") {
-        const result =
-          config.provider === "claude" ? parseClaudeOutput(output) : parseCodexOutput(output);
+        let result: AgentResult;
+        if (config.provider === "kimi") {
+          result = parseKimiOutput(output);
+        } else if (config.provider === "claude") {
+          result = parseClaudeOutput(output);
+        } else {
+          result = parseCodexOutput(output);
+        }
         resolve(result);
         return;
       }
@@ -497,10 +624,13 @@ export async function executeAgentAsync(
 
 /**
  * Auto-detect available agent
+ * Kimi is preferred for fully automated execution (--print mode with auto-approval)
+ * Falls back to Codex, then Claude
  */
 export function detectAgent(): AgentProvider | null {
-  if (isAgentAvailable("claude")) return "claude";
+  if (isAgentAvailable("kimi")) return "kimi";
   if (isAgentAvailable("codex")) return "codex";
+  if (isAgentAvailable("claude")) return "claude";
   return null;
 }
 
@@ -511,9 +641,16 @@ export function createDefaultConfig(workingDir?: string): AgentConfig | null {
   const provider = detectAgent();
   if (!provider) return null;
 
+  // Default models for each provider
+  const defaultModels: Record<AgentProvider, string | undefined> = {
+    kimi: undefined, // Kimi uses default model from config
+    claude: "sonnet",
+    codex: "gpt-4o",
+  };
+
   return {
     provider,
-    model: provider === "claude" ? "sonnet" : "gpt-4o",
+    model: defaultModels[provider],
     maxBudgetUsd: 1.0,
     allowedTools: ["Read", "Edit", "Bash", "Glob"],
     workingDir,
