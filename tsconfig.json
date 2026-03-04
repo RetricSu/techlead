@@ -14,6 +14,7 @@
     "sourceMap": true,
     "resolveJsonModule": true
   },
-  "include": ["src/**/*", "tests/**/*"],
+  "include": ["src/**/*"],
+  "rootDir": "./src",
   "exclude": ["node_modules", "dist", "test-flows"]
 }
