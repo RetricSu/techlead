@@ -361,10 +361,22 @@ export function getConfigPath(cwd: string = process.cwd()): string | null {
     return projectConfig;
   }
 
+  // Check .techlead/config.yaml in project directory
+  const techleadConfigPath = join(cwd, ".techlead", "config.yaml");
+  if (existsSync(techleadConfigPath)) {
+    return techleadConfigPath;
+  }
+
   // Then home directory
   const homeConfig = findConfigFile(homedir());
   if (homeConfig) {
     return homeConfig;
+  }
+
+  // Check .techlead/config.yaml in home directory
+  const homeTechleadConfigPath = join(homedir(), ".techlead", "config.yaml");
+  if (existsSync(homeTechleadConfigPath)) {
+    return homeTechleadConfigPath;
   }
 
   return null;
