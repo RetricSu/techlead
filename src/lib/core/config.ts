@@ -4,15 +4,15 @@
  */
 
 import { existsSync, readFileSync } from "node:fs";
-import { resolve, join } from "node:path";
-import { pathToFileURL } from "node:url";
 import { homedir } from "node:os";
+import { join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { parse as parseYaml } from "yaml";
 import {
-  detectAgent,
-  isAgentAvailable,
   type AgentConfig,
   type AgentProvider,
+  detectAgent,
+  isAgentAvailable,
 } from "../agent/adapter.js";
 
 export interface TechLeadConfig {

@@ -3,7 +3,7 @@
  * Records all I/O with metadata for replay and analysis
  */
 
-import { mkdirSync, appendFileSync } from "node:fs";
+import { appendFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
 export interface LogEntry {

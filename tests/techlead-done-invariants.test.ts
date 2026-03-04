@@ -22,7 +22,7 @@ vi.mock("../src/lib/agent/adapter.js", async () => {
   };
 });
 
-import { cmdAbort, cmdDone, cmdInit, cmdAdd, cmdRun } from "../src/lib/core/commands.js";
+import { cmdAbort, cmdAdd, cmdDone, cmdInit, cmdRun } from "../src/lib/core/commands.js";
 
 function readTaskJson(cwd: string): Record<string, unknown> {
   const tasksDir = path.join(cwd, ".techlead", "tasks");

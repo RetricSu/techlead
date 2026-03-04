@@ -2,10 +2,10 @@
  * Tests for agent-logger
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync, readFileSync, existsSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { AgentExecutionLogger, generateTaskId } from "../src/lib/agent/logger.js";
 
 describe("Agent Execution Logger", () => {

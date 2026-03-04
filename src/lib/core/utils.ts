@@ -1,6 +1,6 @@
+import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { execSync } from "node:child_process";
 import { getRuntimeRoot, getTasksDir } from "./paths.js";
 
 export function generateTaskId(): string {
@@ -124,13 +124,18 @@ export function runQualityGate(): {
       maxBuffer: 50 * 1024 * 1024,
     });
     return { passed: true, command, output };
-  } catch (error: any) {
-    const output = `${error?.stdout || ""}\n${error?.stderr || ""}`.trim();
+  } catch (error: unknown) {
+    const isError = error instanceof Error;
+    const stdout =
+      isError && typeof (error as any).stdout === "string" ? (error as any).stdout : "";
+    const stderr =
+      isError && typeof (error as any).stderr === "string" ? (error as any).stderr : "";
+    const output = `${stdout}\n${stderr}`.trim();
     return {
       passed: false,
       command,
       output,
-      error: error?.message || "Quality gate failed",
+      error: isError ? error.message : "Quality gate failed",
     };
   }
 }

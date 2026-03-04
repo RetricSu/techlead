@@ -2,12 +2,20 @@
  * Agent Adapter - Unified interface for Claude Code and Codex CLI
  */
 
-import { execSync, execFileSync, spawn } from "node:child_process";
+import { execFileSync, execSync, spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { AgentExecutionLogger, generateTaskId } from "./logger.js";
+import { AgentExecutionLogger } from "./logger.js";
 
 export type AgentProvider = "claude" | "codex";
+
+interface CodexOutputData {
+  type: "result" | "message";
+  content?: string;
+  message?: string;
+  session_id?: string;
+  error?: string;
+}
 
 export interface AgentConfig {
   provider: AgentProvider;
@@ -211,7 +219,7 @@ export function parseClaudeOutput(output: string): AgentResult {
 export function parseCodexOutput(output: string): AgentResult {
   // Codex outputs JSONL, find the last result message
   const lines = output.trim().split("\n");
-  let lastResult: any = null;
+  let lastResult: CodexOutputData | null = null;
 
   for (const line of lines) {
     try {
@@ -354,12 +362,13 @@ export function executeAgent(
       }
       return { success: true, content: output };
     }
-  } catch (error: any) {
-    const errorMessage = error.message || String(error);
-    const stdout = error.stdout || "";
+  } catch (error: unknown) {
+    const isError = error instanceof Error;
+    const errorMessage = isError ? error.message : String(error);
+    const stdout = isError && "stdout" in error ? (error as any).stdout || "" : "";
 
     // Log error
-    logger?.logError(error instanceof Error ? error : new Error(errorMessage));
+    logger?.logError(isError ? error : new Error(errorMessage));
     logger?.logEnd(null);
 
     return {

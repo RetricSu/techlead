@@ -1,6 +1,6 @@
 import fs from "node:fs";
-import type { Current, Task } from "./types.js";
 import { getCurrentFile, getTaskJsonPath, getTasksDir } from "./paths.js";
+import type { Current, Task } from "./types.js";
 import { readJson, writeJson } from "./utils.js";
 
 export function readCurrent(): Current {

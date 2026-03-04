@@ -1,16 +1,15 @@
 import fs from "node:fs";
 import path from "node:path";
 import {
-  executeAgent,
-  detectAgent,
-  createDefaultConfig,
   type AgentConfig,
   type AgentOptions,
   type AgentProvider,
   type AgentResult,
+  createDefaultConfig,
+  detectAgent,
+  executeAgent,
 } from "../agent/adapter.js";
 import { defaultModelForProvider, resolveRuntimeAgentConfig } from "./config.js";
-import type { Task } from "./types.js";
 import {
   getKnowledgeDir,
   getTaskDir,
@@ -18,16 +17,6 @@ import {
   getTechleadDir,
   getTemplatesRoot,
 } from "./paths.js";
-import {
-  copyDir,
-  generateTaskId,
-  hasCriticalVerdict,
-  isStepCompleted,
-  loadPromptTemplate,
-  renderTemplate,
-  runQualityGate,
-  sanitizeDirName,
-} from "./utils.js";
 import {
   findNextTask,
   listAllTasks,
@@ -38,6 +27,17 @@ import {
   writeCurrent,
   writeTask,
 } from "./repo.js";
+import type { Task } from "./types.js";
+import {
+  copyDir,
+  generateTaskId,
+  hasCriticalVerdict,
+  isStepCompleted,
+  loadPromptTemplate,
+  renderTemplate,
+  runQualityGate,
+  sanitizeDirName,
+} from "./utils.js";
 
 export function cmdHello(): void {
   console.log("hello from techlead");
