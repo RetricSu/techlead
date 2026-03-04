@@ -127,9 +127,13 @@ export function runQualityGate(): {
   } catch (error: unknown) {
     const isError = error instanceof Error;
     const stdout =
-      isError && typeof (error as any).stdout === "string" ? (error as any).stdout : "";
+      isError && typeof (error as { stdout?: unknown }).stdout === "string"
+        ? (error as { stdout: string }).stdout
+        : "";
     const stderr =
-      isError && typeof (error as any).stderr === "string" ? (error as any).stderr : "";
+      isError && typeof (error as { stderr?: unknown }).stderr === "string"
+        ? (error as { stderr: string }).stderr
+        : "";
     const output = `${stdout}\n${stderr}`.trim();
     return {
       passed: false,

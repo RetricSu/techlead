@@ -365,7 +365,10 @@ export function executeAgent(
   } catch (error: unknown) {
     const isError = error instanceof Error;
     const errorMessage = isError ? error.message : String(error);
-    const stdout = isError && "stdout" in error ? (error as any).stdout || "" : "";
+    const stdout =
+      isError && typeof (error as { stdout?: unknown }).stdout === "string"
+        ? (error as { stdout: string }).stdout || ""
+        : "";
 
     // Log error
     logger?.logError(isError ? error : new Error(errorMessage));
