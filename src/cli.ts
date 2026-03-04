@@ -18,7 +18,7 @@ import {
   cmdStep,
   cmdTest,
   cmdWorld,
-} from "./lib/techlead-commands.js";
+} from "./lib/core/commands.js";
 
 function main(): void {
   const cli = cac("techlead");

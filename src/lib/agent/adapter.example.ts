@@ -10,7 +10,7 @@ import {
   executeAgent,
   executeAgentAsync,
   isAgentAvailable,
-} from "./agent-adapter.js";
+} from "./adapter.js";
 
 // Example 1: Basic usage with auto-detection
 async function example1() {

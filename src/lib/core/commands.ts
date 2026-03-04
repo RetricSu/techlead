@@ -8,16 +8,16 @@ import {
   type AgentOptions,
   type AgentProvider,
   type AgentResult,
-} from "./agent-adapter.js";
-import { defaultModelForProvider, resolveRuntimeAgentConfig } from "./techlead-runtime-config.js";
-import type { Task } from "./techlead-types.js";
+} from "../agent/adapter.js";
+import { defaultModelForProvider, resolveRuntimeAgentConfig } from "./config.js";
+import type { Task } from "./types.js";
 import {
   getKnowledgeDir,
   getTaskDir,
   getTasksDir,
   getTechleadDir,
   getTemplatesRoot,
-} from "./techlead-paths.js";
+} from "./paths.js";
 import {
   copyDir,
   generateTaskId,
@@ -27,7 +27,7 @@ import {
   renderTemplate,
   runQualityGate,
   sanitizeDirName,
-} from "./techlead-utils.js";
+} from "./utils.js";
 import {
   findNextTask,
   listAllTasks,
@@ -37,7 +37,7 @@ import {
   selectTaskForExecution,
   writeCurrent,
   writeTask,
-} from "./techlead-task-repo.js";
+} from "./repo.js";
 
 export function cmdHello(): void {
   console.log("hello from techlead");

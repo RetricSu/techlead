@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AgentConfig, AgentOptions, AgentResult } from "./agent-adapter.js";
+import type { AgentConfig, AgentOptions, AgentResult } from "../src/lib/agent/adapter.js";
 
 const executeAgentMock = vi.hoisted(() =>
   vi.fn<(prompt: string, config: AgentConfig, options?: AgentOptions) => AgentResult>()
@@ -10,8 +10,10 @@ const executeAgentMock = vi.hoisted(() =>
 const detectAgentMock = vi.hoisted(() => vi.fn<() => "claude" | "codex" | null>());
 const isAgentAvailableMock = vi.hoisted(() => vi.fn<(provider: "claude" | "codex") => boolean>());
 
-vi.mock("./agent-adapter.js", async () => {
-  const actual = await vi.importActual<typeof import("./agent-adapter.js")>("./agent-adapter.js");
+vi.mock("../src/lib/agent/adapter.js", async () => {
+  const actual = await vi.importActual<typeof import("../src/lib/agent/adapter.js")>(
+    "../src/lib/agent/adapter.js"
+  );
   return {
     ...actual,
     executeAgent: executeAgentMock,
@@ -20,7 +22,7 @@ vi.mock("./agent-adapter.js", async () => {
   };
 });
 
-import { cmdAbort, cmdDone, cmdInit, cmdAdd, cmdRun } from "./techlead-commands.js";
+import { cmdAbort, cmdDone, cmdInit, cmdAdd, cmdRun } from "../src/lib/core/commands.js";
 
 function readTaskJson(cwd: string): Record<string, unknown> {
   const tasksDir = path.join(cwd, ".techlead", "tasks");

@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { execSync } from "node:child_process";
-import { getRuntimeRoot, getTasksDir } from "./techlead-paths.js";
+import { getRuntimeRoot, getTasksDir } from "./paths.js";
 
 export function generateTaskId(): string {
   const tasksDir = getTasksDir();

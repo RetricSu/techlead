@@ -1,7 +1,7 @@
 import fs from "node:fs";
-import type { Current, Task } from "./techlead-types.js";
-import { getCurrentFile, getTaskJsonPath, getTasksDir } from "./techlead-paths.js";
-import { readJson, writeJson } from "./techlead-utils.js";
+import type { Current, Task } from "./types.js";
+import { getCurrentFile, getTaskJsonPath, getTasksDir } from "./paths.js";
+import { readJson, writeJson } from "./utils.js";
 
 export function readCurrent(): Current {
   return readJson<Current>(getCurrentFile()) || { task_id: null, phase: null };

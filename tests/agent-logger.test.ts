@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, rmSync, readFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { AgentExecutionLogger, generateTaskId } from "./agent-logger.js";
+import { AgentExecutionLogger, generateTaskId } from "../src/lib/agent/logger.js";
 
 describe("Agent Execution Logger", () => {
   let tempDir: string;

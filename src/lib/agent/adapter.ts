@@ -5,7 +5,7 @@
 import { execSync, execFileSync, spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { AgentExecutionLogger, generateTaskId } from "./agent-logger.js";
+import { AgentExecutionLogger, generateTaskId } from "./logger.js";
 
 export type AgentProvider = "claude" | "codex";
 

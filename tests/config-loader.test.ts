@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadConfig, getConfigPath } from "./config-loader.js";
+import { loadConfig, getConfigPath } from "../src/lib/core/config.js";
 
 describe("Config Loader", () => {
   let tempDir: string;

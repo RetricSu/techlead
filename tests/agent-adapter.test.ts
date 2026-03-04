@@ -11,8 +11,8 @@ import {
   buildCodexCommand,
   parseClaudeOutput,
   parseCodexOutput,
-} from "./agent-adapter.js";
-import type { AgentConfig, AgentOptions } from "./agent-adapter.js";
+} from "../src/lib/agent/adapter.js";
+import type { AgentConfig, AgentOptions } from "../src/lib/agent/adapter.js";
 
 describe("Agent Adapter", () => {
   describe("Detection", () => {
