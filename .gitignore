@@ -22,3 +22,12 @@ npm-shrinkwrap.json
 logs/agent-executions/
 
 tmp-e2e-run/
+
+# Test coverage
+coverage/
+
+# Local skills (installed via kimi-cli)
+.kimi/
+
+# Generated plans
+docs/plans/
