@@ -24,4 +24,4 @@ logs/agent-executions/
 tmp-e2e-run/
 
 # Generated version file
-src/version.json
+src/version.ts

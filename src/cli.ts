@@ -21,22 +21,15 @@ import {
 } from "./lib/core/commands.js";
 import { cmdCancel } from "./lib/core/cancel.js";
 import { cmdWatch } from "./lib/core/watch.js";
-import { createRequire } from "node:module";
-const require = createRequire(import.meta.url);
-const { version, commit } = require("./version.json");
+import { version, commit } from "./version.js";
 
-const versionString = `${version} (${commit})`;
+const versionString = commit ? `${version} (${commit})` : `${version}`;
 
 async function main(): Promise<void> {
   const cli = cac("techlead");
-  cli.option("-v, --version", "Show version");
 
-  // Handle version before parsing commands
-  const args = process.argv.slice(2);
-  if (args.includes("-v") || args.includes("--version")) {
-    console.log(versionString);
-    process.exit(0);
-  }
+  // Use cac's built-in version handling
+  cli.version(versionString);
 
   cli.command("hello", "Print a hello message").action(cmdHello);
   cli.command("world", "Ask Claude to say hello to the world").action(() => cmdWorld());
