@@ -2,13 +2,13 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { RunState } from "../src/lib/agent/runtime-types.js";
+import type { RunState } from "../../src/lib/agent/runtime-types.js";
 import {
   writeRunState,
   readRunState,
   listActiveRuns,
   cleanOrphanRuns,
-} from "../src/lib/agent/run-state.js";
+} from "../../src/lib/agent/run-state.js";
 
 describe("RunState Persistence", () => {
   let tmpDir: string;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { formatActiveRuns } from "../src/lib/core/watch.js";
-import type { RunState } from "../src/lib/agent/runtime-types.js";
+import { formatActiveRuns } from "../../src/lib/core/watch.js";
+import type { RunState } from "../../src/lib/agent/runtime-types.js";
 
 describe("Watch", () => {
   it("should format empty active runs", () => {

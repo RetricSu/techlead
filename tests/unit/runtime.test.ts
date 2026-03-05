@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { AgentRuntime } from "../src/lib/agent/runtime.js";
+import { AgentRuntime } from "../../src/lib/agent/runtime.js";
 
 describe("AgentRuntime", () => {
   let tmpDir: string;

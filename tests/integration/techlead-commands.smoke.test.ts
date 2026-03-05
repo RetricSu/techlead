@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AgentResult } from "../src/lib/agent/adapter.js";
+import type { AgentResult } from "../../src/lib/agent/adapter.js";
 
 const detectAgentMock = vi.hoisted(() => vi.fn<() => "claude" | "codex" | null>());
 const isAgentAvailableMock = vi.hoisted(() => vi.fn<(provider: "claude" | "codex") => boolean>());
@@ -14,9 +14,9 @@ let resultQueue: AgentResult[] = [];
 // Queue of side effects to run when spawn is called (before result resolves)
 let sideEffectQueue: Array<(() => void) | null> = [];
 
-vi.mock("../src/lib/agent/adapter.js", async () => {
-  const actual = await vi.importActual<typeof import("../src/lib/agent/adapter.js")>(
-    "../src/lib/agent/adapter.js"
+vi.mock("../../src/lib/agent/adapter.js", async () => {
+  const actual = await vi.importActual<typeof import("../../src/lib/agent/adapter.js")>(
+    "../../src/lib/agent/adapter.js"
   );
   return {
     ...actual,
@@ -25,7 +25,7 @@ vi.mock("../src/lib/agent/adapter.js", async () => {
   };
 });
 
-vi.mock("../src/lib/agent/runtime.js", () => {
+vi.mock("../../src/lib/agent/runtime.js", () => {
   return {
     AgentRuntime: class MockAgentRuntime {
       spawn(spawnArgs: unknown, opts: unknown) {
@@ -46,7 +46,7 @@ vi.mock("../src/lib/agent/runtime.js", () => {
   };
 });
 
-import { cmdAdd, cmdDone, cmdInit, cmdRun } from "../src/lib/core/commands.js";
+import { cmdAdd, cmdDone, cmdInit, cmdRun } from "../../src/lib/core/commands.js";
 
 function readTaskJson(cwd: string): Record<string, unknown> {
   const tasksDir = path.join(cwd, ".techlead", "tasks");

@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AgentConfig, AgentOptions, AgentResult } from "../src/lib/agent/adapter.js";
+import type { AgentConfig, AgentOptions, AgentResult } from "../../src/lib/agent/adapter.js";
 
 const executeAgentMock = vi.hoisted(() =>
   vi.fn<(prompt: string, config: AgentConfig, options?: AgentOptions) => AgentResult>()
@@ -22,7 +22,7 @@ vi.mock("../src/lib/agent/adapter.js", async () => {
   };
 });
 
-import { cmdAbort, cmdAdd, cmdDone, cmdInit, cmdRun } from "../src/lib/core/commands.js";
+import { cmdAbort, cmdAdd, cmdDone, cmdInit, cmdRun } from "../../src/lib/core/commands.js";
 
 function readTaskJson(cwd: string): Record<string, unknown> {
   const tasksDir = path.join(cwd, ".techlead", "tasks");

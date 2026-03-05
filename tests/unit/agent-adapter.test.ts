@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import type { AgentConfig, AgentOptions } from "../src/lib/agent/adapter.js";
+import type { AgentConfig, AgentOptions } from "../../src/lib/agent/adapter.js";
 import {
   buildClaudeCommand,
   buildCodexCommand,
@@ -13,7 +13,7 @@ import {
   isAgentAvailable,
   parseClaudeOutput,
   parseCodexOutput,
-} from "../src/lib/agent/adapter.js";
+} from "../../src/lib/agent/adapter.js";
 
 describe("Agent Adapter", () => {
   describe("Detection", () => {
