@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { cac } from "cac";
 import {
   cmdAbort,
@@ -22,8 +25,43 @@ import {
 import { cmdCancel } from "./lib/core/cancel.js";
 import { cmdWatch } from "./lib/core/watch.js";
 
+function resolveVersion(): string {
+  try {
+    const currentDir = dirname(fileURLToPath(import.meta.url));
+    const packageJsonPath = join(currentDir, "../package.json");
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8")) as {
+      version?: string;
+    };
+
+    return packageJson.version ?? "0.0.0";
+  } catch {
+    return "0.0.0";
+  }
+}
+
+function resolveBuildCommitId(): string | undefined {
+  try {
+    const currentDir = dirname(fileURLToPath(import.meta.url));
+    const buildMetaPath = join(currentDir, "build-meta.json");
+    const buildMeta = JSON.parse(readFileSync(buildMetaPath, "utf-8")) as {
+      commit?: string | null;
+    };
+
+    return buildMeta.commit ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+const commit = resolveBuildCommitId();
+const version = resolveVersion();
+const versionString = commit ? `${version} (${commit})` : `${version}`;
+
 async function main(): Promise<void> {
   const cli = cac("techlead");
+
+  // Use cac's built-in version handling
+  cli.version(versionString);
 
   cli.command("hello", "Print a hello message").action(cmdHello);
   cli.command("world", "Ask Claude to say hello to the world").action(() => cmdWorld());
