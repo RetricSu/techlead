@@ -12,8 +12,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "node scripts/generate-version.mjs && tsc",
-    "predev": "node scripts/generate-version.mjs",
+    "build": "tsc && node scripts/generate-build-meta.mjs",
     "dev": "tsx src/cli.ts",
     "test": "vitest run",
     "test:watch": "vitest",
