@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { RunState, RunStatus, SpawnArgs } from "../src/lib/agent/runtime-types.js";
+import type { RunState, RunStatus, SpawnArgs } from "../../src/lib/agent/runtime-types.js";
 
 describe("Runtime Types", () => {
   it("should allow creating a valid RunState", () => {

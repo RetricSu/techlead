@@ -5,18 +5,25 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { getConfigPath, loadConfig } from "../src/lib/core/config.js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { getConfigPath, loadConfig } from "../../src/lib/core/config.js";
 
 describe("Config Loader", () => {
   let tempDir: string;
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+  let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     tempDir = mkdtempSync(join(tmpdir(), "config-test-"));
+    // Mock console to suppress expected error/warning messages in tests
+    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
   });
 
   afterEach(() => {
     rmSync(tempDir, { recursive: true, force: true });
+    consoleErrorSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
   });
 
   describe("loadConfig", () => {
