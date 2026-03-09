@@ -24,6 +24,12 @@ import {
 } from "./lib/core/commands.js";
 import { cmdCancel } from "./lib/core/cancel.js";
 import { cmdWatch } from "./lib/core/watch.js";
+import {
+  cmdOpencodeAdd,
+  cmdOpencodeList,
+  cmdOpencodeServe,
+  cmdOpencodeStatus,
+} from "./lib/opencode/commands.js";
 
 function resolveVersion(): string {
   try {
@@ -101,6 +107,55 @@ async function main(): Promise<void> {
     .action((options) => cmdWatch(options));
 
   cli.command("cancel [runId]", "Cancel an active agent run").action((runId) => cmdCancel(runId));
+
+  cli
+    .command(
+      "opencode <subcommand> [...args]",
+      "OpenCode commands (add <title>|list|status|serve <action>)"
+    )
+    .action(async (subcommand, args) => {
+      switch (subcommand) {
+        case "add": {
+          const title = args?.join(" ");
+          if (!title) {
+            console.error("❌ Error: Task title required");
+            console.log("   Usage: techlead opencode add <title>");
+            process.exit(1);
+          }
+          await cmdOpencodeAdd(title);
+          break;
+        }
+        case "list":
+          cmdOpencodeList();
+          break;
+        case "status":
+          await cmdOpencodeStatus();
+          break;
+        case "serve": {
+          const action = args?.[0];
+          if (!action || !["start", "stop", "status"].includes(action)) {
+            console.error("❌ Error: serve action must be start, stop, or status");
+            console.log("   Usage: techlead opencode serve [start|stop|status]");
+            process.exit(1);
+          }
+          await cmdOpencodeServe(action as "start" | "stop" | "status");
+          break;
+        }
+        default: {
+          if (!subcommand) {
+            console.log("📖 OpenCode Commands:");
+            console.log("   add <title>   - Add OpenCode-managed task");
+            console.log("   list          - List OpenCode tasks");
+            console.log("   status        - Show OpenCode server status");
+            console.log("   serve <action>- Manage OpenCode server (start|stop|status)");
+          } else {
+            console.error(`❌ Unknown subcommand: ${subcommand}`);
+            console.log("   Run: techlead opencode --help");
+            process.exit(1);
+          }
+        }
+      }
+    });
 
   cli.help();
   cli.parse();
