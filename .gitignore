@@ -31,3 +31,6 @@ coverage/
 
 # Generated plans
 docs/plans/
+
+# Sisyphus execution tracking
+.sisyphus/
